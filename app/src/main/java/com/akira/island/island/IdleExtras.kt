@@ -67,10 +67,6 @@ fun IdleExtras(s: IslandSettings) {
             } else TextButton(onClick = { open(Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS, Uri.parse("package:${context.packageName}"))) }) {
                 Text(tr("Разрешить управление яркостью", "Allow brightness controls"))
             }
-            Row {
-                TextButton(onClick = { open(Intent(Intent.ACTION_VIEW, android.provider.CallLog.Calls.CONTENT_URI)) }) { Text(tr("Журнал звонков", "Call history")) }
-                TextButton(onClick = { open(Intent(context, com.akira.island.ui.MainActivity::class.java)) }) { Text(tr("Настройки", "Settings")) }
-            }
         }
     }
 }

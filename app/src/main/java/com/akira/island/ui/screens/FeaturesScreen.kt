@@ -5,6 +5,14 @@ import com.akira.island.island.PreviewScene
 
 import androidx.compose.foundation.background
 import androidx.compose.material.icons.rounded.BatteryFull
+import androidx.compose.material.icons.rounded.Wifi
+import androidx.compose.material.icons.rounded.SignalCellularAlt
+import androidx.compose.material.icons.rounded.Bluetooth
+import androidx.compose.material.icons.rounded.WifiTethering
+import androidx.compose.material.icons.rounded.AirplanemodeActive
+import androidx.compose.material.icons.rounded.BatterySaver
+import androidx.compose.material.icons.rounded.Calculate
+import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.BatteryChargingFull
 import androidx.compose.material.icons.rounded.AlarmAdd
 import androidx.compose.material.icons.rounded.TouchApp
@@ -478,6 +486,16 @@ private val QuickAction.settingsIcon: ImageVector
         QuickAction.LOCK -> Icons.Rounded.Lock
         QuickAction.RINGER -> Icons.AutoMirrored.Rounded.VolumeUp
         QuickAction.DND -> Icons.Rounded.DoNotDisturbOn
+        QuickAction.WIFI -> Icons.Rounded.Wifi
+        QuickAction.INTERNET -> Icons.Rounded.SignalCellularAlt
+        QuickAction.BLUETOOTH -> Icons.Rounded.Bluetooth
+        QuickAction.HOTSPOT -> Icons.Rounded.WifiTethering
+        QuickAction.AIRPLANE -> Icons.Rounded.AirplanemodeActive
+        QuickAction.ROTATION -> Icons.Rounded.ScreenRotation
+        QuickAction.BATTERY_SAVER -> Icons.Rounded.BatterySaver
+        QuickAction.CALCULATOR -> Icons.Rounded.Calculate
+        QuickAction.RECORDER -> Icons.Rounded.Mic
+        QuickAction.QUICK_SETTINGS -> Icons.Rounded.Tune
     }
 
 /** Подпись к кнопке — только там, где непонятно по названию */
@@ -490,6 +508,12 @@ private val QuickAction.hint: String?
             "Ring → vibrate → silent. For Silent, Android asks for Do Not Disturb access")
         QuickAction.DND -> tr("Включает и выключает «Не беспокоить». В первый раз Android попросит доступ",
             "Turns Do Not Disturb on and off. The first time, Android asks for access")
+        QuickAction.WIFI, QuickAction.INTERNET, QuickAction.BLUETOOTH, QuickAction.HOTSPOT, QuickAction.AIRPLANE,
+        QuickAction.BATTERY_SAVER -> tr("Открывает системную панель: Android не даёт приложениям переключать это напрямую",
+            "Opens the system panel: Android doesn't let apps switch this directly")
+        QuickAction.ROTATION -> tr("В первый раз попросит доступ к изменению системных настроек",
+            "The first time, asks for permission to modify system settings")
+        QuickAction.QUICK_SETTINGS -> tr("Открывает быстрые настройки Android", "Opens Android quick settings")
         else -> null
     }
 

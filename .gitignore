@@ -14,3 +14,12 @@ captures/
 .cxx/
 
 .kotlin/
+
+# Signing and local secrets
+*.jks
+*.keystore
+*_base64.txt
+keystore.properties
+secrets.properties
+.env
+.env.*

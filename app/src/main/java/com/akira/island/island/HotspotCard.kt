@@ -49,7 +49,7 @@ internal fun HotspotDetails(status: HotspotStatus) {
     }
 }
 
-private fun openHotspotSettings(context: Context): Boolean {
+internal fun openHotspotSettings(context: Context): Boolean {
     // AOSP's optional settings route; fall back to the public wireless settings action on OEMs.
     for (action in listOf("android.settings.TETHER_SETTINGS", Settings.ACTION_WIRELESS_SETTINGS)) {
         val intent = Intent(action).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

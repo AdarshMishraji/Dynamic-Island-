@@ -76,6 +76,16 @@ import androidx.compose.material.icons.rounded.HeartBroken
 import androidx.compose.material.icons.rounded.PhotoCamera
 import androidx.compose.material.icons.rounded.Screenshot
 import androidx.compose.material.icons.rounded.OpenInNew
+import androidx.compose.material.icons.rounded.Apps
+import androidx.compose.material.icons.rounded.BatterySaver
+import androidx.compose.material.icons.rounded.Bluetooth
+import androidx.compose.material.icons.rounded.Calculate
+import androidx.compose.material.icons.rounded.Mic
+import androidx.compose.material.icons.rounded.ScreenRotation
+import androidx.compose.material.icons.rounded.SignalCellularAlt
+import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material.icons.rounded.WifiTethering
+import android.provider.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
@@ -167,6 +177,7 @@ private fun ExpandedContentBody(act: Act, s: IslandSettings, lyrics: Lyrics?, ba
                 is Act.CallA -> CallExpanded(act.c)
                 is Act.AlarmA -> AlarmExpanded(act.a, s)
                 is Act.InboxA -> InboxExpanded(act.items)
+                is Act.Launcher -> LauncherExpanded(s)
                 // Зарядка раскрывается как пустой остров: часы, заряд и кнопки — зарядка не закрывает их собой
                 else -> IdleExpanded(s, battery)
             }
@@ -907,9 +918,13 @@ private fun IdleExpanded(s: IslandSettings, battery: BatteryInfo) {
         IdleExtras(s)
         val actions = if (extras.briefEnabled && locked) emptyList() else s.quickActions
         val alarmCreator = s.showAlarmCreator && !locked
-        if (actions.isEmpty() && !alarmCreator) return@Column
+        val launcher = s.quickLaunch && !locked
+        if (actions.isEmpty() && !alarmCreator && !launcher) return@Column
         Spacer(Modifier.height(16.dp))
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            if (launcher) PillButton(Icons.Rounded.Apps, tr("Быстрый запуск", "Quick launch"), modifier = Modifier.fillMaxWidth()) {
+                Controls.openQuickLaunch()
+            }
             if (alarmCreator) PillButton(Ios.alarm, tr("Новый будильник", "New alarm"),
                 bg = Tints.Orange.copy(alpha = 0.2f), fg = Tints.Orange, modifier = Modifier.fillMaxWidth()) {
                 val intent = android.content.Intent(context, com.akira.island.ui.SystemAlarmActivity::class.java)
@@ -965,9 +980,15 @@ internal fun IdleTimerPicker(s: IslandSettings) {
 
 @Composable
 private fun QuickButton(a: QuickAction, context: Context, modifier: Modifier) {
+    PillButton(quickIcon(a), quickLabel(a), modifier, bg = if (quickOn(a)) Tints.Purple else Color.White.copy(alpha = 0.14f)) {
+        runQuickAction(a, context)
+    }
+}
+
+@Composable
+internal fun quickIcon(a: QuickAction): androidx.compose.ui.graphics.vector.ImageVector {
     val ringer by IslandBus.ringer.collectAsState()
-    val dnd by IslandBus.dnd.collectAsState()
-    val icon = when (a) {
+    return when (a) {
         QuickAction.STOPWATCH -> Ios.stopwatch
         QuickAction.FLASHLIGHT -> Ios.flashlight
         QuickAction.SCREENSHOT -> Icons.Rounded.Screenshot
@@ -980,9 +1001,24 @@ private fun QuickButton(a: QuickAction, context: Context, modifier: Modifier) {
             else -> Ios.bell
         }
         QuickAction.DND -> Ios.moon
+        QuickAction.WIFI -> Ios.wifi
+        QuickAction.INTERNET -> Icons.Rounded.SignalCellularAlt
+        QuickAction.BLUETOOTH -> Icons.Rounded.Bluetooth
+        QuickAction.HOTSPOT -> Icons.Rounded.WifiTethering
+        QuickAction.AIRPLANE -> Ios.airplane
+        QuickAction.ROTATION -> Icons.Rounded.ScreenRotation
+        QuickAction.BATTERY_SAVER -> Icons.Rounded.BatterySaver
+        QuickAction.CALCULATOR -> Icons.Rounded.Calculate
+        QuickAction.RECORDER -> Icons.Rounded.Mic
+        QuickAction.QUICK_SETTINGS -> Icons.Rounded.Tune
     }
-    // У «Режима звука» подпись — сам режим; «Не беспокоить» горит, пока включено
-    val label = when (a) {
+}
+
+/** «Режим звука» shows the current mode instead of its name. */
+@Composable
+internal fun quickLabel(a: QuickAction): String {
+    val ringer by IslandBus.ringer.collectAsState()
+    return when (a) {
         QuickAction.RINGER -> when (ringer) {
             AudioManager.RINGER_MODE_SILENT -> tr("Без звука", "Silent")
             AudioManager.RINGER_MODE_VIBRATE -> tr("Вибрация", "Vibrate")
@@ -990,31 +1026,62 @@ private fun QuickButton(a: QuickAction, context: Context, modifier: Modifier) {
         }
         else -> a.short
     }
-    val on = a == QuickAction.DND && dnd
-    PillButton(icon, label, modifier, bg = if (on) Tints.Purple else Color.White.copy(alpha = 0.14f)) {
-        when (a) {
-            QuickAction.STOPWATCH -> {
-                Controls.startStopwatch()
-                Controls.expand("stopwatch")
-            }
-            QuickAction.FLASHLIGHT -> {
-                Controls.torchOn()
-                Controls.collapse()
-            }
-            QuickAction.SCREENSHOT -> Controls.screenshot()
-            QuickAction.CAMERA -> {
-                Controls.collapse()
-                Controls.openCamera(context)
-            }
-            QuickAction.LOCK -> {
-                Controls.collapse()
-                Controls.lockScreen()
-            }
-            QuickAction.TIMER -> Controls.startTimer(SettingsRepo.current.timerMinutes)
-            QuickAction.RINGER -> Controls.cycleRinger(context)
-            QuickAction.DND -> Controls.toggleDnd(context)
+}
+
+/** Lit while on: only for states the island can read without extra permissions. */
+@Composable
+internal fun quickOn(a: QuickAction): Boolean {
+    val dnd by IslandBus.dnd.collectAsState()
+    return a == QuickAction.DND && dnd
+}
+
+internal fun runQuickAction(a: QuickAction, context: Context) {
+    val opened = when (a) {
+        QuickAction.STOPWATCH -> {
+            Controls.startStopwatch()
+            Controls.expand("stopwatch")
+            true
         }
+        QuickAction.FLASHLIGHT -> {
+            Controls.torchOn()
+            Controls.collapse()
+            true
+        }
+        QuickAction.SCREENSHOT -> { Controls.screenshot(); true }
+        QuickAction.CAMERA -> {
+            Controls.collapse()
+            Controls.openCamera(context)
+            true
+        }
+        QuickAction.LOCK -> {
+            Controls.collapse()
+            Controls.lockScreen()
+            true
+        }
+        QuickAction.TIMER -> {
+            Controls.startTimer(SettingsRepo.current.timerMinutes)
+            Controls.expand("timer")
+            true
+        }
+        QuickAction.RINGER -> { Controls.cycleRinger(context); true }
+        QuickAction.DND -> { Controls.toggleDnd(context); true }
+        QuickAction.WIFI -> Controls.openSystem(context,
+            *listOfNotNull(if (android.os.Build.VERSION.SDK_INT >= 29) Settings.Panel.ACTION_WIFI else null, Settings.ACTION_WIFI_SETTINGS).toTypedArray())
+        QuickAction.INTERNET -> Controls.openSystem(context,
+            *listOfNotNull(if (android.os.Build.VERSION.SDK_INT >= 29) Settings.Panel.ACTION_INTERNET_CONNECTIVITY else null,
+                Settings.ACTION_DATA_ROAMING_SETTINGS, Settings.ACTION_WIRELESS_SETTINGS).toTypedArray())
+        QuickAction.BLUETOOTH -> Controls.openSystem(context, Settings.ACTION_BLUETOOTH_SETTINGS)
+        QuickAction.HOTSPOT -> openHotspotSettings(context).also { if (it) Controls.collapse() }
+        QuickAction.AIRPLANE -> Controls.openSystem(context, Settings.ACTION_AIRPLANE_MODE_SETTINGS, Settings.ACTION_WIRELESS_SETTINGS)
+        QuickAction.ROTATION -> { Controls.toggleRotation(context); true }
+        QuickAction.BATTERY_SAVER -> Controls.openSystem(context, Settings.ACTION_BATTERY_SAVER_SETTINGS)
+        QuickAction.CALCULATOR -> Controls.openIntent(context,
+            android.content.Intent.makeMainSelectorActivity(android.content.Intent.ACTION_MAIN, android.content.Intent.CATEGORY_APP_CALCULATOR))
+        QuickAction.RECORDER -> Controls.openIntent(context, android.content.Intent(android.provider.MediaStore.Audio.Media.RECORD_SOUND_ACTION))
+        QuickAction.QUICK_SETTINGS -> { Controls.openQuickSettings(); true }
     }
+    if (!opened) android.widget.Toast.makeText(context, tr("Недоступно на этом телефоне", "Not available on this phone"),
+        android.widget.Toast.LENGTH_SHORT).show()
 }
 
 

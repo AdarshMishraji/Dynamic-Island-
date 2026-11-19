@@ -52,6 +52,11 @@
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
         </intent>
+        <!-- Quick launch leaves the home screen out of Recents -->
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.HOME" />
+        </intent>
         <!-- Приложения «Часы» для экрана «Системные плашки» -->
         <intent>
             <action android:name="android.intent.action.SET_TIMER" />

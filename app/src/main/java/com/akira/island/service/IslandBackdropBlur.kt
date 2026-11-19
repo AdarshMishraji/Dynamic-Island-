@@ -24,7 +24,7 @@ internal fun backdropAllowed(requested: Boolean, enabled: Boolean, visible: Bool
 internal fun backdropTransmits(s: com.akira.island.data.IslandSettings, card: Boolean = true): Boolean {
     val color = if (card && s.expandedColorEnabled) s.expandedColor else s.color
     val alpha = ((color ushr 24) and 255).toFloat() / 255f
-    val density = if (s.liquidGlass) com.akira.island.core.glassBodyDensity(s.glassOpacity / 100f)
+    val density = if (s.liquidGlass && card) com.akira.island.core.glassBodyDensity(s.glassOpacity / 100f)
         else s.islandOpacity.coerceIn(20, 100) / 100f
     return alpha * density < 1f
 }

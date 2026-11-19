@@ -262,6 +262,7 @@ class IslandService : AccessibilityService() {
                     ServiceCommand.LOCK -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) performGlobalAction(GLOBAL_ACTION_LOCK_SCREEN)
                     ServiceCommand.TURN_OFF -> disableSelf()
                     ServiceCommand.SCROLL_TOP -> scrollToTop?.request()
+                    ServiceCommand.QUICK_SETTINGS -> performGlobalAction(GLOBAL_ACTION_QUICK_SETTINGS)
                 }
             }
         }
@@ -485,12 +486,8 @@ class IslandService : AccessibilityService() {
                 floor(geometry.area.right).toInt(), floor(geometry.area.bottom).toInt()), geometry.bottomRadius, true,
                 geometry.topRadius, strengthPercent = s.glassBlurStrength)
         } else backdrop?.hide()
-        if (!IslandBus.expanded.value && !bubble.isEmpty && backdropTransmits(s, card = false)) {
-            val layer = bubbleBackdrop ?: IslandBackdropBlur(this, view).also { bubbleBackdrop = it }
-            layer.update(android.graphics.Rect(floor(bubble.left).toInt(), floor(bubble.top).toInt(),
-                ceil(bubble.right).toInt(), ceil(bubble.bottom).toInt()), minOf(bubble.width, bubble.height)/2f, true,
-                strengthPercent = s.glassBlurStrength)
-        } else bubbleBackdrop?.hide()
+        // The bubble is a pill, not a card: no glass, so no blur layer behind it.
+        bubbleBackdrop?.hide()
     }
 
     private fun isAmbientDisplay(): Boolean {
@@ -827,6 +824,7 @@ class IslandService : AccessibilityService() {
         payReader?.onForeground(pkg, cls)
         setScreenEvents(clockReader?.active == true || payReader?.active == true)
         IslandBus.foregroundPackage.value = pkg
+        com.akira.island.island.RecentApps.push(pkg)
     }
 
     /**

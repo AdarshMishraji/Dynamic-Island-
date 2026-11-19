@@ -328,6 +328,9 @@ private fun CompactContentBody(act: Act, s: IslandSettings, wideWidth: Dp) {
             right = { TimeText("${act.items.size}", Tints.Blue, 16) },
         )
 
+        // Exists only while expanded.
+        is Act.Launcher -> Unit
+
     }
 }
 

@@ -54,6 +54,7 @@ enum class TapAction(private val ru: String, private val en: String) {
     NOTHING("Ничего", "Nothing"),
     DISMISS_NOTIFICATION("Удалить уведомление", "Dismiss notification"),
     SCROLL_TOP("Прокрутить наверх", "Scroll to top"),
+    QUICK_LAUNCH("Быстрый запуск", "Quick launch"),
     ;
 
     val title: String get() = tr(ru, en)
@@ -70,6 +71,17 @@ enum class QuickAction(private val ru: String, private val en: String, private v
     LOCK("Заблокировать экран", "Lock the screen", "Блокировка", "Lock"),
     RINGER("Режим звука", "Sound mode", "Звук", "Sound"),
     DND("Не беспокоить", "Do Not Disturb", "Не беспокоить", "Do Not Disturb"),
+    // Android lets apps open these panels, not flip the switches themselves.
+    WIFI("Wi-Fi", "Wi-Fi", "Wi-Fi", "Wi-Fi"),
+    INTERNET("Мобильный интернет", "Mobile data", "Интернет", "Internet"),
+    BLUETOOTH("Bluetooth", "Bluetooth", "Bluetooth", "Bluetooth"),
+    HOTSPOT("Точка доступа", "Hotspot", "Точка доступа", "Hotspot"),
+    AIRPLANE("Режим полёта", "Airplane mode", "Режим полёта", "Airplane"),
+    ROTATION("Автоповорот", "Auto-rotate", "Поворот", "Rotate"),
+    BATTERY_SAVER("Экономия заряда", "Battery saver", "Экономия", "Saver"),
+    CALCULATOR("Калькулятор", "Calculator", "Калькулятор", "Calculator"),
+    RECORDER("Диктофон", "Voice recorder", "Диктофон", "Recorder"),
+    QUICK_SETTINGS("Быстрые настройки", "Quick settings", "Настройки", "Settings"),
     ;
 
     val title: String get() = tr(ru, en)
@@ -426,6 +438,16 @@ data class IslandSettings(
     val evVpn: Boolean = false,
     val evHotspot: Boolean = false,
     val evDebugging: Boolean = false,
+    val evFullCharge: Boolean = true,
+    val evPowerSave: Boolean = true,
+    val evWiredHeadset: Boolean = true,
+    /** Bonded non-audio Bluetooth devices: watches, cars, keyboards. Off by default: some reconnect often. */
+    val evBluetooth: Boolean = false,
+    /** Quick launch: pinned apps, recent apps and tools in the expanded island. */
+    val quickLaunch: Boolean = true,
+    val launcherApps: List<String> = emptyList(),
+    val launcherRecents: Boolean = true,
+    val launcherTools: List<QuickAction> = QuickAction.entries.filter { it != QuickAction.TIMER },
     /** -1 preserves the automatic capsule/card radius. */
     val cornerRadius: Int = -1,
     val notchTopRadius: Int = 0,

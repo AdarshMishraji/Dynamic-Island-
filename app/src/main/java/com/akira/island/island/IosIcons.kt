@@ -46,4 +46,6 @@ object Ios {
     val chatbubble @Composable get() = ImageVector.vectorResource(R.drawable.ios_chatbubble_ellipses)
     val bellOff @Composable get() = ImageVector.vectorResource(R.drawable.ios_notifications_off)
     val vibrate @Composable get() = ImageVector.vectorResource(R.drawable.ios_phone_portrait)
+    val wifi @Composable get() = ImageVector.vectorResource(R.drawable.ios_wifi)
+    val airplane @Composable get() = ImageVector.vectorResource(R.drawable.ios_airplane)
 }

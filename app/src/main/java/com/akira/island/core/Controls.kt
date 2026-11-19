@@ -261,6 +261,45 @@ object Controls {
         }
     }
 
+    /** Quick launch: open the panel only if the phone isn't locked; launching apps behind the keyguard does nothing useful. */
+    fun openQuickLaunch() {
+        if (!IslandBus.locked.value) expand(QUICK_LAUNCH)
+    }
+
+    const val QUICK_LAUNCH = "launcher"
+
+    /** First of [actions] the phone can open, then collapse. Android 10+ apps may open these panels but not flip the switches. */
+    fun openSystem(context: Context, vararg actions: String): Boolean {
+        val opened = actions.any { action ->
+            runCatching { context.startActivity(Intent(action).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }.isSuccess
+        }
+        if (opened) collapse()
+        return opened
+    }
+
+    fun openIntent(context: Context, intent: Intent): Boolean {
+        val opened = runCatching { context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }.isSuccess
+        if (opened) collapse()
+        return opened
+    }
+
+    fun rotationOn(context: Context): Boolean =
+        Settings.System.getInt(context.contentResolver, Settings.System.ACCELEROMETER_ROTATION, 0) == 1
+
+    /** Auto-rotate needs "Modify system settings"; without it, open that screen instead. */
+    fun toggleRotation(context: Context) {
+        if (!Settings.System.canWrite(context)) {
+            openIntent(context, Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS, android.net.Uri.parse("package:" + context.packageName)))
+            return
+        }
+        runCatching { Settings.System.putInt(context.contentResolver, Settings.System.ACCELEROMETER_ROTATION, if (rotationOn(context)) 0 else 1) }
+    }
+
+    fun openQuickSettings() {
+        IslandBus.commands.tryEmit(ServiceCommand.QUICK_SETTINGS)
+        collapse()
+    }
+
     fun openCamera(context: Context) {
         runCatching {
             context.startActivity(Intent(android.provider.MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))

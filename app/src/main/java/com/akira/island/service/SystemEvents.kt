@@ -25,6 +25,9 @@ import android.os.Looper
 import android.os.PowerManager
 import android.os.SystemClock
 import android.provider.Settings
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.BatterySaver
+import androidx.compose.material.icons.rounded.Bluetooth
 import androidx.compose.ui.graphics.Color
 import androidx.core.content.ContextCompat
 import androidx.core.content.IntentCompat
@@ -72,6 +75,8 @@ class SystemEvents(private val context: Context) {
     private val s get() = SettingsRepo.current
 
     private var lowWarned = false
+    private var fullWarned = false
+    private var wiredHeadset: Boolean? = null
     private var usbConnected: Boolean? = null
     private var brightnessMode = -1
     private var dnd: Boolean? = null
@@ -184,6 +189,7 @@ class SystemEvents(private val context: Context) {
             addAction(USB_STATE)
             addAction(NotificationManager.ACTION_INTERRUPTION_FILTER_CHANGED)
             addAction(PowerManager.ACTION_POWER_SAVE_MODE_CHANGED)
+            addAction(AudioManager.ACTION_HEADSET_PLUG)
             // Optional OEM broadcast: no hidden API calls or control of tethering.
             addAction(WIFI_AP_STATE_CHANGED)
         }
@@ -321,8 +327,23 @@ class SystemEvents(private val context: Context) {
                 IslandBus.keyguard.value = isKeyguard()
             }
 
-            PowerManager.ACTION_POWER_SAVE_MODE_CHANGED ->
-                IslandBus.powerSave.value = context.getSystemService(PowerManager::class.java)?.isPowerSaveMode == true
+            PowerManager.ACTION_POWER_SAVE_MODE_CHANGED -> {
+                val on = context.getSystemService(PowerManager::class.java)?.isPowerSaveMode == true
+                if (on == IslandBus.powerSave.value) return
+                IslandBus.powerSave.value = on
+                notice(s.evPowerSave, Notice(tr("Экономия заряда", "Battery Saver"), if (on) tr("Вкл", "On") else tr("Выкл", "Off"),
+                    Icons.Rounded.BatterySaver, if (on) Tints.Yellow else Tints.Gray))
+            }
+
+            AudioManager.ACTION_HEADSET_PLUG -> {
+                val plugged = when (intent.getIntExtra("state", -1)) { 1 -> true; 0 -> false; else -> return }
+                val previous = wiredHeadset
+                wiredHeadset = plugged
+                // The sticky broadcast on registration is the current state, not a change.
+                if (initialSticky || previous == plugged) return
+                notice(s.evWiredHeadset, Notice(tr("Проводные наушники", "Wired headphones"), null, ic(R.drawable.ios_headset),
+                    if (plugged) Tints.Green else Tints.Gray, caption = if (plugged) tr("Подключено", "Connected") else tr("Отключено", "Disconnected")))
+            }
 
             NotificationManager.ACTION_INTERRUPTION_FILTER_CHANGED -> {
                 val on = isDnd()
@@ -368,10 +389,15 @@ class SystemEvents(private val context: Context) {
                 // Без разрешения BLUETOOTH_CONNECT имени и класса устройства не узнать
                 val name = runCatching { device.name }.getOrNull()
                 // Класс не прочитать — не знаем, наушники ли это (могут быть часы или машина), молчим
-                val isAudio = runCatching {
-                    device.bluetoothClass?.majorDeviceClass == BluetoothClass.Device.Major.AUDIO_VIDEO
-                }.getOrDefault(false)
-                if (!isAudio) return
+                val major = runCatching { device.bluetoothClass?.majorDeviceClass }.getOrNull() ?: return
+                if (major != BluetoothClass.Device.Major.AUDIO_VIDEO) {
+                    // Only paired devices: unpaired BLE links come and go without the user doing anything.
+                    if (runCatching { device.bondState }.getOrNull() != BluetoothDevice.BOND_BONDED) return
+                    val connected = intent.action == BluetoothDevice.ACTION_ACL_CONNECTED
+                    notice(s.evBluetooth, Notice(name ?: "Bluetooth", null, Icons.Rounded.Bluetooth, if (connected) Tints.Blue else Tints.Gray,
+                        caption = if (connected) tr("Подключено", "Connected") else tr("Отключено", "Disconnected")))
+                    return
+                }
                 val address = runCatching { device.address }.getOrNull() ?: return
                 if (intent.action == BluetoothDevice.ACTION_ACL_CONNECTED) {
                     val n = Notice(name ?: tr("Наушники", "Headphones"), null, ic(R.drawable.ios_headset), Tints.Green,
@@ -502,6 +528,14 @@ class SystemEvents(private val context: Context) {
             if (current != null && voltage != null) current * voltage / 1000f else null,
             remaining ?: fallback?.remainingMs,
             remainingApproximate = remaining == null && fallback?.source == com.akira.island.core.ChargeEtaSource.OBSERVED)
+
+        // Once per plug-in: trickle charging can bounce between 99 and 100.
+        if (plugged == 0) fullWarned = false
+        else if (!fullWarned && (status == BatteryManager.BATTERY_STATUS_FULL || level >= 100)) {
+            fullWarned = true
+            notice(s.evFullCharge, Notice(tr("Заряжено", "Fully Charged"), if (level >= 0) "$level%" else null, ic(R.drawable.ios_battery_full),
+                Tints.Green, battery = level.takeIf { it >= 0 }))
+        }
 
         if (charging || level > 5) {
             lowWarned = false

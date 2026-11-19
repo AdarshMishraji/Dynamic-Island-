@@ -19,6 +19,8 @@ import com.akira.island.core.tr
 import com.akira.island.data.BriefClockStyle
 import com.akira.island.data.ContactShortcut
 import com.akira.island.data.ExtrasRepo
+import com.akira.island.data.QuickAction
+import com.akira.island.data.SettingsRepo
 import com.akira.island.service.WeatherCity
 import com.akira.island.service.WeatherRepo
 import com.akira.island.ui.*
@@ -38,6 +40,18 @@ fun ExtrasScreen(onBack: () -> Unit) {
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var clockStyle by remember { mutableStateOf(false) }
+    val island by SettingsRepo.state.collectAsState()
+    var pickLauncher by remember { mutableStateOf(false) }
+    var toolsDialog by remember { mutableStateOf(false) }
+    fun loadApps(forLauncher: Boolean) {
+        pickLauncher = forLauncher
+        scope.launch {
+            apps = withContext(Dispatchers.IO) {
+                context.packageManager.queryIntentActivities(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER), 0)
+                    .distinctBy { it.activityInfo.packageName }.sortedBy { it.loadLabel(context.packageManager).toString() }
+            }
+        }
+    }
     val stepPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         ExtrasRepo.update { copy(steps = granted) }
     }
@@ -62,7 +76,7 @@ fun ExtrasScreen(onBack: () -> Unit) {
                 "Brief uses your enabled step counter and selected city's weather. Shortcuts and controls stay below. Steps, weather and shortcuts are hidden until unlocked."))
         }
         GroupToggle(Pos.Single, Icons.Rounded.Tune, tr("Элементы управления", "Controls"),
-            tr("Громкость, яркость и журнал звонков в раскрытом пустом острове", "Volume, brightness and call history in the expanded idle island"), s.controls, color = Tile.Indigo) {
+            tr("Громкость и яркость в раскрытом пустом острове", "Volume and brightness in the expanded idle island"), s.controls, color = Tile.Indigo) {
             ExtrasRepo.update { copy(controls = it) }
         }
         if (!s.briefEnabled) GroupToggle(Pos.Single, Icons.Rounded.Schedule, tr("Аналоговые часы", "Analog clock"),
@@ -76,14 +90,8 @@ fun ExtrasScreen(onBack: () -> Unit) {
         }
         SectionHeader(tr("Быстрый доступ", "Shortcuts"))
         Group {
-            GroupItem(Pos.First, Icons.Rounded.Apps, tr("Добавить приложение", "Add app"), tr("До шести приложений", "Up to six apps"), color = Tile.Purple, onClick = {
-                scope.launch {
-                    apps = withContext(Dispatchers.IO) {
-                        context.packageManager.queryIntentActivities(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER), 0)
-                            .distinctBy { it.activityInfo.packageName }.sortedBy { it.loadLabel(context.packageManager).toString() }
-                    }
-                }
-            })
+            GroupItem(Pos.First, Icons.Rounded.Apps, tr("Добавить приложение", "Add app"), tr("До шести приложений", "Up to six apps"), color = Tile.Purple,
+                onClick = { loadApps(forLauncher = false) })
             s.apps.forEach { pkg ->
                 val visual = com.akira.island.island.rememberAppShortcut(pkg)
                 SelectedShortcutRow(visual.label, visual.icon, null) { ExtrasRepo.update { copy(apps = this.apps - pkg) } }
@@ -95,6 +103,30 @@ fun ExtrasScreen(onBack: () -> Unit) {
             GroupItem(Pos.Last, Icons.Rounded.Info, tr("Ваши ярлыки", "Your shortcuts"),
                 tr("Приложения и контакты доступны после раскрытия пустого острова. Контакты скрыты на экране блокировки.", "Apps and contacts appear in the expanded idle island. Contacts are hidden on the lock screen."))
         }
+        SectionHeader(tr("Быстрый запуск", "Quick launch"))
+        Group {
+            GroupToggle(if (island.quickLaunch) Pos.First else Pos.Single, Icons.Rounded.RocketLaunch, tr("Быстрый запуск", "Quick launch"),
+                tr("Кнопка в раскрытом пустом острове: приложения, недавние и инструменты",
+                    "A button in the expanded idle island: apps, recents and tools"),
+                island.quickLaunch, color = Tile.Blue) { v -> SettingsRepo.update { copy(quickLaunch = v) } }
+            if (island.quickLaunch) {
+                GroupItem(Pos.Middle, Icons.Rounded.Apps, tr("Добавить приложение", "Add app"), tr("До двенадцати приложений", "Up to twelve apps"),
+                    color = Tile.Blue, onClick = { loadApps(forLauncher = true) })
+                island.launcherApps.forEach { pkg ->
+                    val visual = com.akira.island.island.rememberAppShortcut(pkg)
+                    SelectedShortcutRow(visual.label, visual.icon, null) { SettingsRepo.update { copy(launcherApps = launcherApps - pkg) } }
+                }
+                GroupToggle(Pos.Middle, Icons.Rounded.History, tr("Недавние приложения", "Recent apps"),
+                    tr("Отдельная вкладка с приложениями, которые вы открывали", "A tab with the apps you opened recently"),
+                    island.launcherRecents, color = Tile.Indigo) { v -> SettingsRepo.update { copy(launcherRecents = v) } }
+                GroupItem(Pos.Last, Icons.Rounded.GridView, tr("Инструменты", "Tools"),
+                    com.akira.island.core.trf("Выбрано: {0}", "Selected: {0}", island.launcherTools.size),
+                    color = Tile.Orange, onClick = { toolsDialog = true })
+            }
+        }
+        if (island.quickLaunch) SettingsHint(tr("Быстрый запуск можно также назначить на двойное или долгое нажатие в «Жестах». На экране блокировки он не открывается.",
+            "You can also assign Quick launch to a double tap or long press in Gestures. It doesn't open on the lock screen."))
+
         SectionHeader(tr("Погода", "Weather"))
         val forecast by WeatherRepo.state.collectAsState()
         val forecastLoading by WeatherRepo.loading.collectAsState()
@@ -146,11 +178,28 @@ fun ExtrasScreen(onBack: () -> Unit) {
             Column(Modifier.heightIn(max = 400.dp).verticalScroll(rememberScrollState())) {
                 available.forEach { app ->
                     Text(app.loadLabel(context.packageManager).toString(), modifier = Modifier.fillMaxWidth().clickable {
-                        ExtrasRepo.update { copy(apps = (this.apps + app.activityInfo.packageName).distinct().takeLast(6)) }
+                        val pkg = app.activityInfo.packageName
+                        if (pickLauncher) SettingsRepo.update { copy(launcherApps = (launcherApps + pkg).distinct().takeLast(12)) }
+                        else ExtrasRepo.update { copy(apps = (this.apps + pkg).distinct().takeLast(6)) }
                         apps = null
                     }.padding(12.dp))
                 }
             }
         }, confirmButton = { TextButton(onClick = { apps = null }) { Text(tr("Закрыть", "Close")) } })
     }
+    if (toolsDialog) AlertDialog(onDismissRequest = { toolsDialog = false }, title = { Text(tr("Инструменты", "Tools")) }, text = {
+        Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
+            QuickAction.entries.forEach { a ->
+                val on = a in island.launcherTools
+                Row(Modifier.fillMaxWidth().clickable {
+                    // Order follows the list, whatever is ticked first
+                    SettingsRepo.update { copy(launcherTools = QuickAction.entries.filter { if (it == a) !on else it in launcherTools }) }
+                }.padding(vertical = 4.dp), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    Checkbox(on, onCheckedChange = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text(a.title)
+                }
+            }
+        }
+    }, confirmButton = { TextButton(onClick = { toolsDialog = false }) { Text(tr("Готово", "Done")) } })
 }

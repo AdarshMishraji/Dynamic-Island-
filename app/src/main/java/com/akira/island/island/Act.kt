@@ -19,6 +19,8 @@ sealed class Act(val id: String, val transient: Boolean = false) {
     open val pkg: String? get() = null
 
     data object Idle : Act("idle")
+    /** Quick launch: exists only while open, so collapsing removes it. */
+    data object Launcher : Act(com.akira.island.core.Controls.QUICK_LAUNCH)
     data class HotspotA(val status: com.akira.island.service.HotspotStatus) : Act("hotspot")
     data class WeatherA(val weather: com.akira.island.service.WeatherInfo) : Act("weather")
     data class NoticeA(val n: Notice) : Act("notice", transient = true)

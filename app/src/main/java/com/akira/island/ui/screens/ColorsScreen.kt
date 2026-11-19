@@ -162,8 +162,8 @@ fun ColorsScreen(onBack: () -> Unit) {
             blurRejected || !blurAvailable -> tr("Системное размытие сейчас недоступно; прозрачность и блики стекла сохраняются.", "System blur is currently unavailable; glass transparency and reflections remain.")
             !islandRunning -> tr("Размытие встроено в стекло и появится после включения острова.", "Blur is part of the glass and appears when the island is running.")
             s.glassBlurStrength == 0 -> tr("Размытие выключено; прозрачность и блики стекла сохраняются.", "Blur is off; glass transparency and reflections remain.")
-            else -> tr("Сила размытия меняет фон, плотность стекла — его заливку. Изменения применяются к острову и второму кружочку.",
-                "Blur strength changes the background; glass density changes its tint. Changes apply to the island and activity bubble.")
+            else -> tr("Сила размытия меняет фон, плотность стекла — его заливку. Стекло применяется к раскрытым карточкам; свёрнутая капсула и кружок остаются сплошными.",
+                "Blur strength changes the background; glass density changes its tint. Glass applies to expanded cards; the collapsed pill and bubble stay solid.")
         })
         GroupToggle(Pos.Single, Icons.Rounded.Tonality, tr("Тень", "Shadow"), tr("Заметна на светлом фоне; режим «Уменьшить эффекты» отключает её.", "Visible on light backgrounds; Reduce effects disables it."), s.shadow, color = Tile.Gray) {
             v -> SettingsRepo.update { copy(shadow = v) }

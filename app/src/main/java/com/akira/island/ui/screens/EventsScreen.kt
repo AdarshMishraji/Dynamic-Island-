@@ -79,9 +79,15 @@ fun EventsScreen(onBack: () -> Unit) {
                 s.evChargeStart, color = Tile.Green) { set { copy(evChargeStart = it) } }
             GroupToggle(Pos.Middle, Icons.Rounded.PowerOff, tr("Зарядка остановлена", "Charging stopped"), null,
                 s.evChargeStop, color = Tile.Gray) { set { copy(evChargeStop = it) } }
-            GroupToggle(Pos.Last, Icons.Rounded.BatteryAlert, tr("Низкий заряд", "Low battery"),
+            GroupToggle(Pos.Middle, Icons.Rounded.BatteryFull, tr("Полностью заряжено", "Fully charged"),
+                tr("Один раз за подключение", "Once per charge"),
+                s.evFullCharge, color = Tile.Green) { set { copy(evFullCharge = it) } }
+            GroupToggle(Pos.Middle, Icons.Rounded.BatteryAlert, tr("Низкий заряд", "Low battery"),
                 tr("Когда заряд батареи падает до 5%", "When the battery drops to 5%"),
                 s.evLowBattery, color = Tile.Red) { set { copy(evLowBattery = it) } }
+            GroupToggle(Pos.Last, Icons.Rounded.BatterySaver, tr("Экономия заряда", "Battery saver"),
+                tr("Когда включают или выключают энергосбережение", "When battery saver is turned on or off"),
+                s.evPowerSave, color = Tile.Yellow) { set { copy(evPowerSave = it) } }
         }
 
         SectionHeader(tr("Подключения", "Connections"))
@@ -95,6 +101,12 @@ fun EventsScreen(onBack: () -> Unit) {
                 s.evHeadsetOn, color = Tile.Indigo) { set { copy(evHeadsetOn = it) } }
             GroupToggle(Pos.Middle, Icons.Rounded.BluetoothDisabled, tr("Наушники отключены", "Headphones disconnected"), null,
                 s.evHeadsetOff, color = Tile.Gray) { set { copy(evHeadsetOff = it) } }
+            GroupToggle(Pos.Middle, Icons.Rounded.Headphones, tr("Проводные наушники", "Wired headphones"),
+                tr("Подключение и отключение через разъём", "Plugged in or unplugged"),
+                s.evWiredHeadset, color = Tile.Indigo) { set { copy(evWiredHeadset = it) } }
+            GroupToggle(Pos.Middle, Icons.Rounded.Bluetooth, tr("Другие Bluetooth-устройства", "Other Bluetooth devices"),
+                tr("Сопряжённые часы, машина, клавиатура", "Paired watches, cars, keyboards"),
+                s.evBluetooth, color = Tile.Blue) { set { copy(evBluetooth = it) } }
             GroupToggle(Pos.Middle, Icons.Rounded.Usb, tr("USB-устройство подключено", "USB device connected"), null,
                 s.evUsbOn, color = Tile.Teal) { set { copy(evUsbOn = it) } }
             GroupToggle(Pos.Middle, Icons.Rounded.UsbOff, tr("USB-устройство отключено", "USB device disconnected"), null,
@@ -214,6 +226,10 @@ private fun eventExample(old: IslandSettings, s: IslandSettings): Notice? {
         Triple(old.evChargeStart != s.evChargeStart, tr("Зарядка", "Charging"), Icons.Rounded.Bolt),
         Triple(old.evChargeStop != s.evChargeStop, tr("Зарядка остановлена", "Charging stopped"), Icons.Rounded.PowerOff),
         Triple(old.evLowBattery != s.evLowBattery, tr("Низкий заряд", "Low battery"), Icons.Rounded.BatteryAlert),
+        Triple(old.evFullCharge != s.evFullCharge, tr("Заряжено", "Fully charged"), Icons.Rounded.BatteryFull),
+        Triple(old.evPowerSave != s.evPowerSave, tr("Экономия заряда", "Battery saver"), Icons.Rounded.BatterySaver),
+        Triple(old.evWiredHeadset != s.evWiredHeadset, tr("Проводные наушники", "Wired headphones"), Icons.Rounded.Headphones),
+        Triple(old.evBluetooth != s.evBluetooth, "Bluetooth", Icons.Rounded.Bluetooth),
         Triple(old.evWifiOn != s.evWifiOn, "Wi-Fi", Icons.Rounded.Wifi),
         Triple(old.evWifiOff != s.evWifiOff, "Wi-Fi", Icons.Rounded.WifiOff),
         Triple(old.evHeadsetOn != s.evHeadsetOn, tr("Наушники", "Headphones"), Icons.Rounded.BluetoothConnected),

@@ -52,6 +52,8 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -180,6 +182,7 @@ fun IslandOverlay(
     val extras by com.akira.island.data.ExtrasRepo.state.collectAsState()
     val hotspot by com.akira.island.service.HotspotMonitor.state.collectAsState()
     val shadeOpen by IslandBus.shadeOpen.collectAsState()
+    val locked by IslandBus.locked.collectAsState()
     // Будильник появляется в острове за 12 часов и уходит, когда прозвенел: просыпаемся ровно в эти два момента,
     // а не каждые полминуты. Пока телефон спит, ожидание стоит — поэтому со включением экрана пересчитываем
     val screenOn by IslandBus.screenOn.collectAsState()
@@ -294,6 +297,7 @@ fun IslandOverlay(
         if (s.cardAlarm && alarm != null && alarm.triggerAt - alarmNow in 1..ALARM_LEAD_MS) persistent += Act.AlarmA(alarm)
 
         if (s.hideWhenSourceOpen) persistent.removeAll { it.pkg != null && it.pkg == foreground }
+        if (expanded && focus == Act.Launcher.id && !locked) persistent += Act.Launcher
 
         // Выбранная активность выходит вперёд, но звонящий таймер всегда главный
         val ringing = (persistent.firstOrNull() as? Act.TimerA)?.t?.ringing == true || call?.incoming == true
@@ -610,9 +614,9 @@ internal fun IslandBody(
     val tilt = IslandBus.glassTilt.collectAsState()
     val previewTilt = LocalGlassTilt.current
     val sheen = remember { Animatable(-1f) }
-    LaunchedEffect(primary.id, expanded, s.liquidGlass, s.reduceEffects) {
+    LaunchedEffect(primary.id, expanded, s.liquidGlass, s.reduceEffects, large) {
         sheen.snapTo(-1f)
-        if (!s.liquidGlass || s.reduceEffects) return@LaunchedEffect
+        if (!s.liquidGlass || !large || s.reduceEffects) return@LaunchedEffect
         sheen.snapTo(0f)
         sheen.animateTo(1f, tween(850, easing = FastOutSlowInEasing))
         sheen.snapTo(-1f)
@@ -646,7 +650,8 @@ internal fun IslandBody(
             val geometry = BackdropGeometry(c.boundsInWindow(),
                 with(backdropDensity) { corner.value.toPx() }*scale,
                 with(backdropDensity) { (if (s.notch) s.notchTopRadius.dp else corner.value).toPx() }*scale,
-                !calibrating && !egg && scale.isFinite(), large)
+                // The native blur follows the glass, which only the card has.
+                !calibrating && !egg && large && scale.isFinite(), large)
             if (reportedBackdrop[0] != geometry) {
                 reportedBackdrop[0] = geometry
                 onBackdropShape(geometry)
@@ -660,6 +665,9 @@ internal fun IslandBody(
     Box(
         Modifier
             .onGloballyPositioned { onBounds(it.boundsInWindow()) }
+            // A bouncy spring overshoots its target: collapsing the card could dip below the idle pill
+            // and uncover the camera. Never draw smaller than the idle capsule.
+            .heightIn(min = h)
             .graphicsLayer {
                 // Пасхалка: остров подпрыгивает в такт песни; оплата прошла — на миг подрастает
                 val bump = if (preview) 1f else Egg.bump() * PayFx.pop.floatValue
@@ -958,6 +966,10 @@ private fun perform(context: Context, action: TapAction, act: Act) {
         Controls.scrollToTop()
         return
     }
+    if (action == TapAction.QUICK_LAUNCH) {
+        Controls.openQuickLaunch()
+        return
+    }
     if (act is Act.NoticeA && act.n.message != null) {
         if (IslandBus.locked.value) return
         val message = act.n.message
@@ -985,6 +997,7 @@ private fun perform(context: Context, action: TapAction, act: Act) {
         TapAction.SCROLL_TOP -> Unit // Handled above, including the idle island and transient cards.
         TapAction.NOTHING -> Unit
         TapAction.DISMISS_NOTIFICATION -> Unit
+        TapAction.QUICK_LAUNCH -> Unit // Handled above, from any card.
     }
 }
 
