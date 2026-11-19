@@ -5,7 +5,12 @@ import androidx.compose.material.icons.outlined.PlayCircle
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Bedtime
 import androidx.compose.material.icons.rounded.Call
+import androidx.compose.material.icons.rounded.CloudUpload
+import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Downloading
+import androidx.compose.material.icons.rounded.FileCopy
+import androidx.compose.material.icons.rounded.SystemUpdate
+import androidx.compose.material.icons.rounded.Upload
 import androidx.compose.material.icons.rounded.FlashlightOn
 import androidx.compose.material.icons.rounded.HourglassEmpty
 import androidx.compose.material.icons.rounded.KeyboardVoice
@@ -103,6 +108,22 @@ fun CardsScreen(onBack: () -> Unit, onInstruction: () -> Unit) {
                 tr("Примерные ↓ и ↑ во время загрузки; это не скорость отдельного файла", "Approximate download and upload totals during a transfer, not the speed of one file"),
                 s.showNetworkRate, color = Tile.Teal) { set { copy(showNetworkRate = it) } }
             if (s.showNetworkRate) com.akira.island.island.NetworkRateExample()
+            SectionHeader(tr("Что показывать в индикаторе", "What the progress indicator shows"))
+            Group {
+                GroupToggle(Pos.First, Icons.Rounded.Downloading, tr("Загрузки", "Downloads"), null,
+                    s.transferDownload, color = Tile.Blue) { set { copy(transferDownload = it) } }
+                GroupToggle(Pos.Middle, Icons.Rounded.Upload, tr("Отправка", "Uploads"), null,
+                    s.transferUpload, color = Tile.Blue) { set { copy(transferUpload = it) } }
+                GroupToggle(Pos.Middle, Icons.Rounded.CloudUpload, tr("Резервное копирование", "Backups"),
+                    tr("И синхронизация с облаком", "And cloud sync"),
+                    s.transferBackup, color = Tile.Indigo) { set { copy(transferBackup = it) } }
+                GroupToggle(Pos.Middle, Icons.Rounded.FileCopy, tr("Копирование и перемещение файлов", "File copy and move"), null,
+                    s.transferCopy, color = Tile.Teal) { set { copy(transferCopy = it) } }
+                GroupToggle(Pos.Middle, Icons.Rounded.Delete, tr("Удаление файлов", "File deletion"), null,
+                    s.transferDelete, color = Tile.Red) { set { copy(transferDelete = it) } }
+                GroupToggle(Pos.Last, Icons.Rounded.SystemUpdate, tr("Установка и обновление приложений", "App installs and updates"), null,
+                    s.transferInstall, color = Tile.Green) { set { copy(transferInstall = it) } }
+            }
         }
 
         SectionHeader(tr("В дороге", "On the road"))

@@ -290,18 +290,21 @@ private fun CompactContentBody(act: Act, s: IslandSettings, wideWidth: Dp) {
             right = { GlowDot(Tints.Yellow, h * 0.26f, !s.reduceEffects) },
         )
 
-        is Act.ProgressA -> CompactRow(h, gap, side,
-            left = { AppIcon(act.p.icon, h * 0.56f, Ios.download, Tints.Blue) },
-            right = {
-                if (act.p.indeterminate) {
-                    Icon(Ios.download, null, tint = Tints.Blue, modifier = Modifier.size(icon))
-                } else {
-                    // Кольцо доезжает до нового процента, а не прыгает
-                    val fraction by animateFloatAsState(act.p.fraction, tween(450, easing = FastOutSlowInEasing), label = "progress")
-                    ProgressRing(fraction, Tints.Blue, Modifier.size(h * 0.52f), stroke = 3.dp)
-                }
-            },
-        )
+        is Act.ProgressA -> {
+            val tint = transferTint(act.p.state)
+            CompactRow(h, gap, side,
+                left = { AppIcon(act.p.icon, h * 0.56f, transferIcon(act.p.kind), tint) },
+                right = {
+                    if (act.p.indeterminate) {
+                        Icon(transferIcon(act.p.kind), null, tint = tint, modifier = Modifier.size(icon))
+                    } else {
+                        // Кольцо доезжает до нового процента, а не прыгает
+                        val fraction by animateFloatAsState(act.p.fraction, tween(450, easing = FastOutSlowInEasing), label = "progress")
+                        ProgressRing(fraction, tint, Modifier.size(h * 0.52f), stroke = 3.dp)
+                    }
+                },
+            )
+        }
 
         is Act.ChargingA -> CompactRow(h, gap, side * 1.6f,
             left = { Icon(Ios.flash, null, tint = Tints.Green, modifier = Modifier.size(icon)) },
@@ -633,13 +636,8 @@ internal fun MessageCard(n: Notice, m: AppMessage, s: IslandSettings, @Suppress(
             Modifier.fillMaxWidth().height(s.height.dp).padding(horizontal = 18.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
-                if (m.appIcon != null && s.messageIconMode != MessageIconMode.NONE) {
-                    Image(m.appIcon, null, Modifier.size(15.dp).clip(RoundedCornerShape(4.dp)))
-                    Spacer(Modifier.width(6.dp))
-                }
-                Text(m.appName, color = dim, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }
+            // The app's name and icon are not repeated here: the card already shows the avatar and title.
+            Spacer(Modifier.weight(1f))
             Spacer(Modifier.width(compactGap(s)))
             Row(Modifier.weight(1f), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
                 Text(tr("сейчас", "now"), color = dim, fontSize = 12.sp, maxLines = 1, softWrap = false)

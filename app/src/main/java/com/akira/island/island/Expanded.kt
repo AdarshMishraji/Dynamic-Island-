@@ -128,6 +128,7 @@ import com.akira.island.core.MediaInfo
 import com.akira.island.core.PlayerAction
 import com.akira.island.core.ProgressInfo
 import com.akira.island.core.StopwatchState
+import com.akira.island.core.TransferState
 import com.akira.island.core.Tints
 import com.akira.island.core.TimerState
 import com.akira.island.core.TorchState
@@ -784,23 +785,43 @@ private fun RecordingWave(modifier: Modifier, animate: Boolean) {
 @Composable
 private fun ProgressExpanded(p: ProgressInfo, s: IslandSettings) {
     val context = LocalContext.current
+    val locked by IslandBus.locked.collectAsState()
+    val tint = transferTint(p.state)
+    val status = listOfNotNull(p.kind.title, transferStateText(p.state)).joinToString(" · ")
     Column(Modifier.clickable { Controls.openApp(context, p.pkg) }) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            AppIcon(p.icon, 44.dp, Ios.download, Tints.Blue)
+            AppIcon(p.icon, 44.dp, transferIcon(p.kind), tint)
             Spacer(Modifier.width(14.dp))
-            Text(p.title, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold.island, maxLines = 2,
-                overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+            Column(Modifier.weight(1f)) {
+                Text(p.title, color = Color.White, fontSize = 16.sp, fontWeight = FontWeight.SemiBold.island, maxLines = 2,
+                    overflow = TextOverflow.Ellipsis)
+                Text(status, color = if (p.state == TransferState.ACTIVE) Tints.Gray else tint, fontSize = 13.sp, maxLines = 1)
+            }
             if (!p.indeterminate) {
                 Spacer(Modifier.width(8.dp))
-                Text("${(p.fraction * 100).toInt()}%", color = Tints.Blue, fontSize = 18.sp, style = Digits)
+                Text("${(p.fraction * 100).toInt()}%", color = tint, fontSize = 18.sp, style = Digits)
             }
         }
         Spacer(Modifier.height(14.dp))
         Box(Modifier.fillMaxWidth().height(8.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.15f))) {
             Box(Modifier.fillMaxWidth(if (p.indeterminate) 1f else p.fraction).fillMaxHeight().clip(CircleShape)
-                .background(if (p.indeterminate) Tints.Blue.copy(alpha = 0.4f) else Tints.Blue))
+                .background(if (p.indeterminate) tint.copy(alpha = 0.4f) else tint))
         }
         TransferRateDetails(p.transferDetails, s.showNetworkRate)
+        // The app's own Pause / Resume / Cancel, when it offers them
+        val main = if (p.state == TransferState.PAUSED || p.state == TransferState.FAILED) p.resume else p.pause
+        if (!locked && (main != null || p.cancel != null)) {
+            Row(Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                main?.let { intent ->
+                    val resuming = intent === p.resume
+                    PillButton(if (resuming) Ios.play else Ios.pause, if (!resuming) tr("Пауза", "Pause") else if (p.state == TransferState.FAILED) tr("Повторить", "Retry") else tr("Продолжить", "Resume"),
+                        Modifier.weight(1f)) { Controls.send(context, intent) }
+                }
+                p.cancel?.let { intent ->
+                    PillButton(Ios.close, tr("Отмена", "Cancel"), Modifier.weight(1f)) { Controls.send(context, intent) }
+                }
+            }
+        }
     }
 }
 

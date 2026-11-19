@@ -59,6 +59,22 @@ data class Lyrics(val key: String, val lines: List<LyricLine>, val synced: Boole
     }
 }
 
+/** What a progress notification is doing; each kind has its own switch and wording. */
+enum class TransferKind(val pointsUp: Boolean) {
+    DOWNLOAD(false), UPLOAD(true), BACKUP(true), COPY_MOVE(false), DELETE(false), INSTALL(false);
+
+    val title: String get() = when (this) {
+        DOWNLOAD -> tr("Загрузка", "Downloading")
+        UPLOAD -> tr("Отправка", "Uploading")
+        BACKUP -> tr("Резервное копирование", "Backing up")
+        COPY_MOVE -> tr("Копирование", "Copying")
+        DELETE -> tr("Удаление", "Deleting")
+        INSTALL -> tr("Установка", "Installing")
+    }
+}
+
+enum class TransferState { ACTIVE, PAUSED, WAITING, FAILED }
+
 data class ProgressInfo(
     val key: String,
     val pkg: String,
@@ -69,6 +85,12 @@ data class ProgressInfo(
     val indeterminate: Boolean,
     val postTime: Long,
     val transferDetails: TransferDetails? = null,
+    val kind: TransferKind = TransferKind.DOWNLOAD,
+    val state: TransferState = TransferState.ACTIVE,
+    /** The app's own buttons: not every transfer offers them. */
+    val pause: PendingIntent? = null,
+    val resume: PendingIntent? = null,
+    val cancel: PendingIntent? = null,
 ) {
     val fraction: Float get() = if (max > 0) (progress.toFloat() / max).coerceIn(0f, 1f) else 0f
 }

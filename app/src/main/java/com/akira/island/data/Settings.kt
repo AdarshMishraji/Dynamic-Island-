@@ -438,6 +438,13 @@ data class IslandSettings(
     val evVpn: Boolean = false,
     val evHotspot: Boolean = false,
     val evDebugging: Boolean = false,
+    /** Which kinds of progress notification get a card (all of them, unless the progress indicator is off). */
+    val transferDownload: Boolean = true,
+    val transferUpload: Boolean = true,
+    val transferBackup: Boolean = true,
+    val transferCopy: Boolean = true,
+    val transferDelete: Boolean = true,
+    val transferInstall: Boolean = true,
     val evFullCharge: Boolean = true,
     val evPowerSave: Boolean = true,
     val evWiredHeadset: Boolean = true,
@@ -490,6 +497,15 @@ data class IslandSettings(
         messageIconPosition = position,
         messageIconRight = position == MessageIconPosition.RIGHT,
     )
+
+    fun transferEnabled(kind: com.akira.island.core.TransferKind): Boolean = when (kind) {
+        com.akira.island.core.TransferKind.DOWNLOAD -> transferDownload
+        com.akira.island.core.TransferKind.UPLOAD -> transferUpload
+        com.akira.island.core.TransferKind.BACKUP -> transferBackup
+        com.akira.island.core.TransferKind.COPY_MOVE -> transferCopy
+        com.akira.island.core.TransferKind.DELETE -> transferDelete
+        com.akira.island.core.TransferKind.INSTALL -> transferInstall
+    }
 
     /** С «Экономией заряда» в энергосбережении Android — как с «Уменьшить эффекты» */
     fun forPowerSave(on: Boolean): IslandSettings = if (on && batterySaver && !reduceEffects) copy(reduceEffects = true) else this

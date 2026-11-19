@@ -40,6 +40,7 @@ import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.NotificationsOff
 import androidx.compose.material.icons.rounded.PowerSettingsNew
 import androidx.compose.material.icons.rounded.Science
+import androidx.compose.material.icons.rounded.Downloading
 import androidx.compose.material.icons.rounded.SystemUpdate
 import androidx.compose.material.icons.rounded.VerifiedUser
 import androidx.compose.material3.Icon
@@ -438,6 +439,11 @@ private fun demos(context: Context): List<Demo> = listOf(
     },
     Demo(Icons.Rounded.Navigation, tr("Навигатор", "Navigation"), tr("Стрелка поворота и метры до неё", "The turn arrow and meters to it"), Tile.Purple) {
         Controls.showTestLive(context)
+    },
+    Demo(Icons.Rounded.Downloading, tr("Прогресс", "Progress"),
+        tr("Загрузка, отправка, копия, удаление, установка — по одному за нажатие",
+            "Download, upload, backup, copy, delete, install — one per tap"), Tile.Blue) {
+        Controls.showTestProgress(context)
     },
     Demo(Icons.Rounded.SystemUpdate, tr("Обновление", "Update"),
         tr("Карточка новой версии: загрузка и «Обновлено»", "The new version card: download, then Updated"), Tile.Pink) {

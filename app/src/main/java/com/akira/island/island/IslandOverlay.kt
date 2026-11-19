@@ -286,7 +286,7 @@ fun IslandOverlay(
             }.let { if (it < 0) persistent.size else it } else persistent.size
             persistent.add(at, Act.MediaA(m))
         }
-        if (s.cardProgress) groupedProgress(progress.values.toList())?.let { persistent += Act.ProgressA(it) }
+        if (s.cardProgress) groupedProgress(progress.values.filter { s.transferEnabled(it.kind) })?.let { persistent += Act.ProgressA(it) }
         if (s.evHotspot && hotspot.enabled == true) persistent += Act.HotspotA(hotspot)
         // «Только при подключении» — зарядка не занимает остров всё время, пока телефон заряжается
         if (s.cardCharging && battery.charging && !s.chargingBrief) persistent += Act.ChargingA(battery)
@@ -1053,8 +1053,9 @@ private fun BubbleContent(act: Act, s: IslandSettings) {
             is Act.ChronoA -> AppIcon(act.c.icon, inner, act.c.recordingKind?.icon ?: Ios.timer,
                 if (act.c.recording) Tints.Red else Tints.Orange)
             is Act.ProgressA -> {
-                ProgressRing(act.p.fraction, Tints.Blue, Modifier.size(inner), stroke = 2.5.dp)
-                Icon(Ios.download, null, tint = Tints.Blue, modifier = Modifier.size(inner * 0.5f))
+                val tint = transferTint(act.p.state)
+                ProgressRing(act.p.fraction, tint, Modifier.size(inner), stroke = 2.5.dp)
+                Icon(transferIcon(act.p.kind), null, tint = tint, modifier = Modifier.size(inner * 0.5f))
             }
             is Act.CallA -> Icon(Ios.call, null, tint = Tints.Green, modifier = Modifier.size(inner * 0.7f))
             is Act.LiveA -> LiveGlyph(act.l, inner, liveTint(act.l.kind))
@@ -1142,7 +1143,11 @@ internal fun groupedProgress(items: List<com.akira.island.core.ProgressInfo>): c
     val first = items.minWithOrNull(compareBy<com.akira.island.core.ProgressInfo> { it.postTime }.thenBy { it.key })!!
     if (items.size == 1) return first
     val unknown = items.any { it.indeterminate || it.max <= 0 }
-    return first.copy(key = "downloads", title = trf("Загрузок: {0}", "Downloads: {0}", items.size),
+    val title = if (items.all { it.kind == com.akira.island.core.TransferKind.DOWNLOAD }) trf("Загрузок: {0}", "Downloads: {0}", items.size)
+        else trf("Передач: {0}", "Transfers: {0}", items.size)
+    // One aggregate bar: individual pause/cancel buttons no longer say which transfer they belong to
+    return first.copy(key = "downloads", title = title,
         progress = (items.sumOf { it.fraction.toDouble() } / items.size * 1000).toInt(), max = 1000,
-        indeterminate = unknown, transferDetails = null)
+        indeterminate = unknown, transferDetails = null, state = com.akira.island.core.TransferState.ACTIVE,
+        pause = null, resume = null, cancel = null)
 }

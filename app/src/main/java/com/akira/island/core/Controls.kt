@@ -353,6 +353,37 @@ object Controls {
     private const val TEST_LIVE_MS = 10_000L
     const val TEST_LIVE = "test-live"
 
+    private var testProgressKind = 0
+    private var testProgressJob: kotlinx.coroutines.Job? = null
+
+    /** Demo for "Try it": one kind of transfer per tap, filling up in a few seconds. */
+    fun showTestProgress(context: Context) {
+        val kind = TransferKind.entries[testProgressKind++ % TransferKind.entries.size]
+        val name = when (kind) {
+            TransferKind.DOWNLOAD -> "Report.pdf"
+            TransferKind.UPLOAD -> "Holiday.mp4"
+            TransferKind.BACKUP -> tr("Фото", "Photos")
+            TransferKind.COPY_MOVE -> tr("Документы", "Documents")
+            TransferKind.DELETE -> tr("Старые загрузки", "Old downloads")
+            TransferKind.INSTALL -> tr("Остров", "Island")
+        }
+        val icon = com.akira.island.service.NotificationParser.icon(context, context.packageName)
+        testProgressJob?.cancel()
+        testProgressJob = IslandBus.scope.launch {
+            try {
+                for (percent in 0..100 step 4) {
+                    IslandBus.progress.value = IslandBus.progress.value + (TEST_PROGRESS to
+                        ProgressInfo(TEST_PROGRESS, context.packageName, name, icon, percent, 100, false, System.currentTimeMillis(), kind = kind))
+                    delay(250)
+                }
+            } finally {
+                IslandBus.progress.value = IslandBus.progress.value - TEST_PROGRESS
+            }
+        }
+    }
+
+    const val TEST_PROGRESS = "test-progress"
+
     /** Куда выводится звук: системная панель громкости с выбором устройства. */
     fun openOutput(context: Context) {
         val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {

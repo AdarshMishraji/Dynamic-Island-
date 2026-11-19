@@ -154,14 +154,31 @@ object NotificationParser {
         val value = ex.getInt(Notification.EXTRA_PROGRESS, 0)
         val indeterminate = ex.getBoolean(Notification.EXTRA_PROGRESS_INDETERMINATE, false)
         val ongoing = n.flags and Notification.FLAG_ONGOING_EVENT != 0
-        val hasProgress = !isMedia && ((max > 0 && value < max) || (indeterminate && ongoing))
+        val detailText = listOf(Notification.EXTRA_TEXT, Notification.EXTRA_BIG_TEXT, Notification.EXTRA_SUB_TEXT)
+            .mapNotNull { key -> ex.getCharSequence(key)?.takeIf { it.length <= 1024 }?.toString() }
+            .distinct().joinToString("\n")
+        val statusText = title + "\n" + detailText
+        val barProgress = (max > 0 && value < max) || (indeterminate && ongoing)
+        // Some apps write only "Downloading… 45%" and draw no bar
+        val textPercent = if (!barProgress && ongoing && !isMedia && TransferClassifier.saysTransferring(statusText)) {
+            TransferClassifier.percentIn(statusText)
+        } else null
+        val hasProgress = !isMedia && (barProgress || textPercent != null)
         IslandBus.progress.value = IslandBus.progress.value.toMutableMap().apply {
             if (hasProgress) {
-                val detailText = listOf(Notification.EXTRA_TEXT, Notification.EXTRA_BIG_TEXT, Notification.EXTRA_SUB_TEXT)
-                    .mapNotNull { key -> ex.getCharSequence(key)?.takeIf { it.length <= 1024 }?.toString() }
-                    .distinct().joinToString("\n")
-                put(sbn.key, ProgressInfo(sbn.key, sbn.packageName, title, icon(context, sbn.packageName), value, max, indeterminate,
-                    sbn.postTime, TransferDetailsParser.parse(detailText)))
+                val labels = n.actions.orEmpty().map { it.title?.toString().orEmpty() }
+                val buttons = HashMap<TransferClassifier.Button, android.app.PendingIntent>()
+                n.actions?.forEach { a ->
+                    val b = TransferClassifier.button(a.title?.toString().orEmpty())
+                    if (b != null && a.actionIntent != null) buttons.putIfAbsent(b, a.actionIntent)
+                }
+                put(sbn.key, ProgressInfo(sbn.key, sbn.packageName, title, icon(context, sbn.packageName),
+                    textPercent ?: value, if (textPercent != null) 100 else max, indeterminate && textPercent == null,
+                    sbn.postTime, TransferDetailsParser.parse(detailText),
+                    kind = TransferClassifier.kind(sbn.packageName, statusText),
+                    state = TransferClassifier.state(statusText, labels),
+                    pause = buttons[TransferClassifier.Button.PAUSE], resume = buttons[TransferClassifier.Button.RESUME],
+                    cancel = buttons[TransferClassifier.Button.CANCEL]))
             } else {
                 remove(sbn.key)
             }
