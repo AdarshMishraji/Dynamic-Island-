@@ -30,9 +30,9 @@ import com.akira.island.ui.SectionHeader
 import com.akira.island.ui.Tile
 
 /**
- * «Банк не пускает»: многие банки (K PLUS, GCash и другие) не открываются, пока включена служба спец. возможностей
- * не из Play Маркета, — так они защищаются от мошенников. Остров тут ни при чём, и обойти проверку изнутри него
- * нельзя: только выключить остров на время. Здесь — как сделать это одним нажатием и включить обратно.
+ * "The bank won't let me in": many banks (K PLUS, GCash and others) won't open while an accessibility service
+ * not from the Play Store is on; this is how they protect against fraudsters. The island has nothing to do with it, and the check can't be bypassed from inside it:
+ * the only way is to turn the island off for a while. Here is how to do that with one tap and turn it back on.
  */
 @Composable
 fun BanksScreen(onBack: () -> Unit) {
@@ -84,7 +84,7 @@ fun BanksScreen(onBack: () -> Unit) {
     }
 }
 
-/** Android 13+: система сама спрашивает, добавить ли плитку острова в шторку. */
+/** Android 13+: the system itself asks whether to add the island tile to the shade. */
 private fun addTile(context: Context) {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
     val bar = context.getSystemService(StatusBarManager::class.java) ?: return
@@ -100,7 +100,7 @@ private fun addTile(context: Context) {
     }
 }
 
-/** Пункт «Банк не пускает» — на главной, рядом с «Чтобы остров не закрывался». */
+/** The "The bank won't let me in" item is on the home screen, next to "Keep the island from closing". */
 @Composable
 internal fun BanksItem(pos: Pos, open: (Screen) -> Unit) {
     GroupItem(pos, Icons.Rounded.AccountBalance, tr("Банк не пускает", "Bank app won't open"),

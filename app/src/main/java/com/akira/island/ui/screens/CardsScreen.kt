@@ -33,7 +33,7 @@ import com.akira.island.ui.Pos
 import com.akira.island.ui.SectionHeader
 import com.akira.island.ui.Tile
 
-/** «Динамические карточки»: что остров показывает, пока это идёт, — по разделам. */
+/** "Dynamic cards": what the island shows while this is happening, by section. */
 @Composable
 fun CardsScreen(onBack: () -> Unit, onInstruction: () -> Unit) {
     val s by SettingsRepo.state.collectAsState()
@@ -89,7 +89,7 @@ fun CardsScreen(onBack: () -> Unit, onInstruction: () -> Unit) {
                 tr("Когда устройство заряжается", "When the device is charging"),
                 s.cardCharging, color = Tile.Green) { set { copy(cardCharging = it) } }
             if (s.cardCharging) {
-                // Зарядка часами занимает остров — можно оставить только плашку при подключении
+                // Charging occupies the island for hours; you can keep only the banner on connect
                 GroupToggle(Pos.Middle, Icons.Rounded.BatteryChargingFull, tr("Только при подключении", "Only when plugged in"),
                     tr("Плашка «Зарядка» на пару секунд, без капсулы с процентами всё время зарядки",
                         "A Charging banner for a couple of seconds, without the percentage capsule the whole time"),

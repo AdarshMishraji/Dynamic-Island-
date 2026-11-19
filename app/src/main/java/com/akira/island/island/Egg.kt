@@ -72,48 +72,48 @@ import kotlin.math.sqrt
 import kotlin.random.Random
 
 /**
- * Пасхалка. Когда играет «Hopes and Dreams» Тоби Фокса — музыка финальной битвы Undertale, — остров
- * наполняется РЕШИМОСТЬЮ: подпрыгивает в такт песни, светится радугой, как атаки в той битве, на каждую
- * сильную долю из-под него разлетаются звёзды, как у точки сохранения, на каждую новую фразу — вспышка,
- * а вместо эквалайзера бьётся красное сердце — душа. Во вступлении всё тише, с барабанами — в полную силу,
- * на больших поворотах песни — салют, к концу песни и на паузе гаснет.
- * Доли считаются по позиции трека в плеере: слышать звук острову не нужно.
+ * Easter egg. When "Hopes and Dreams" by Toby Fox plays (the final battle music from Undertale), the island
+ * fills with DETERMINATION: it bounces to the beat, glows rainbow like the attacks in that battle, on every
+ * strong beat stars fly out from under it, like at a save point, a flash on every new phrase,
+ * and a red heart, the soul, beats instead of the equalizer. Quieter in the intro, full strength with the drums,
+ * fireworks at the big turns of the song, and it fades toward the end of the song and on pause.
+ * Beats are counted from the track position in the player: the island does not need to hear the sound.
  */
 object Egg {
     /**
-     * Темп саундтрека: в файлах игры песня идёт 180 ударов в минуту, на альбоме замедлена до 512/3 ≈ 170,667.
-     * Ошибка даже на треть удара за три минуты накопилась бы в целую долю.
+     * Soundtrack tempo: in the game files the song runs at 180 beats per minute, on the album it is slowed to 512/3 ≈ 170.667.
+     * Even a third of a beat of error would pile up into a whole beat over three minutes.
      */
     const val BPM = 512f / 3f
     const val BEAT_MS = 60_000f / BPM
-    /** Вступление — 16 тактов, на 0:22,5 вступают барабаны */
+    /** The intro is 16 bars; the drums come in at 0:22.5 */
     const val DROP_BEAT = 64L
-    /** Большие повороты: барабаны (0:22,5), тема «Your Best Friend» (1:30), смена тональности (1:52,5) */
+    /** Big turns: drums (0:22.5), the "Your Best Friend" theme (1:30), key change (1:52.5) */
     internal val BIG_BEATS = longArrayOf(DROP_BEAT, 256L, 320L)
 
-    /** Удар: 1 в момент сильной доли, быстро гаснет к следующей */
+    /** Hit: 1 at the moment of a strong beat, fades quickly toward the next */
     val pulse = mutableFloatStateOf(0f)
 
-    /** Насколько всё ярко: тише во вступлении, гаснет на паузе и в конце трека */
+    /** How bright everything is: quieter in the intro, fades on pause and at the end of the track */
     val intensity = mutableFloatStateOf(0f)
 
-    /** Оттенок радуги, градусы */
+    /** Rainbow hue, degrees */
     val hue = mutableFloatStateOf(0f)
 
-    /** Вспышка в начале фразы: 0 — только что, 1 — погасла */
+    /** Flash at the start of a phrase: 0 is just now, 1 is faded out */
     val flash = mutableFloatStateOf(1f)
 
-    /** Время кадра — по нему слои эффектов перерисовываются, пока летят звёзды */
+    /** Frame time: the effect layers are redrawn by it while the stars fly */
     val frame = mutableLongStateOf(0L)
 
-    /** На сколько остров подпрыгивает на сильную долю; с «Уменьшить эффекты» — не подпрыгивает */
+    /** How far the island bounces on a strong beat; with "Reduce effects" it does not bounce */
     internal var bounce = 0.03f
 
     internal val sparks = ArrayList<Spark>()
 
     private val LINE get() = tr("Вас переполняет РЕШИМОСТЬ.", "You're filled with DETERMINATION.")
 
-    /** «Hopes and Dreams» Тоби Фокса — по названию и исполнителю, альбому или подписи «Undertale». */
+    /** "Hopes and Dreams" by Toby Fox: matched by title and artist, album, or the "Undertale" label. */
     fun matches(m: MediaInfo): Boolean {
         val title = norm(m.title)
         if ("hopes and dreams" !in title) return false
@@ -125,10 +125,10 @@ object Egg {
 
     private fun norm(s: String?): String = s.orEmpty().lowercase().replace("&", " and ").replace(nonWord, " ").trim()
 
-    /** Масштаб острова сейчас: он подпрыгивает от верхней середины, как и при раскрытии. */
+    /** Current island scale: it bounces from the top center, as when expanding. */
     fun bump(): Float = 1f + bounce * pulse.floatValue * intensity.floatValue
 
-    /** Где остров виден с учётом подпрыгивания — свечение и звёзды держатся его краёв. */
+    /** Where the island is visible, including the bounce: the glow and stars hold to its edges. */
     internal fun scaled(b: Rect): Rect {
         val k = bump()
         val half = b.width / 2f * k
@@ -136,8 +136,8 @@ object Egg {
     }
 
     /**
-     * Следит за плеером: пока играет та самая песня, включает пасхалку ([IslandBus.egg]) и один раз за трек
-     * показывает плашку, как окно диалога из игры. Выключается в «Динамических карточках» → «Пасхалки».
+     * Watches the player: while that very song plays, it turns on the easter egg ([IslandBus.egg]) and once per track
+     * shows a banner like a dialog box from the game. Turned off in "Dynamic cards" → "Easter eggs".
      */
     fun watch(context: Context, scope: CoroutineScope) {
         var announced: String? = null
@@ -161,7 +161,7 @@ object Egg {
                             icon = Ios.load(context, R.drawable.ic_soul),
                             tint = SoulRed,
                             style = NoticeStyle.EGG,
-                            // Строка печатается по букве — плашке нужно время, чтобы её успели прочитать
+                            // The line is printed letter by letter: the banner needs time so it can be read
                             extraMs = 2_000,
                             openPkg = m.pkg,
                         ),
@@ -179,7 +179,7 @@ object Egg {
     }
 }
 
-/** Звезда, вылетевшая из-под острова: где, куда и с какой скоростью (px/мс), сколько живёт (мс). */
+/** A star that flew out from under the island: where, where to and at what speed (px/ms), how long it lives (ms). */
 internal class Spark(
     var x: Float,
     var y: Float,
@@ -197,12 +197,12 @@ private val SoulRed = Color(0xFFFF1F1F)
 
 private fun rainbow(hue: Float): Color = Color.hsv(((hue % 360f) + 360f) % 360f, 0.85f, 1f)
 
-/** Скругление острова: капсула — половина высоты, раскрытый — не больше 44 dp. */
+/** Island corner radius: the capsule is half the height, expanded is at most 44 dp. */
 private fun DrawScope.cornerOf(b: Rect) = min(b.height / 2f, 44.dp.toPx())
 
 /**
- * Ведёт пасхалку покадрово: по позиции трека считает доли, разгоняет радугу, запускает вспышки и звёзды.
- * На паузе, когда всё погасло, кадры не тратит — ждёт, пока музыка заиграет снова.
+ * Drives the easter egg frame by frame: counts beats from the track position, speeds up the rainbow, triggers flashes and stars.
+ * On pause, once everything has faded, it spends no frames and waits until the music plays again.
  */
 @Composable
 fun EggDriver(body: () -> Rect, s: IslandSettings) {
@@ -250,7 +250,7 @@ fun EggDriver(body: () -> Rect, s: IslandSettings) {
 
                 if (playing && beat != lastBeat && beat >= 0) {
                     val strong = beat % 4 == 0L
-                    // Сильная доля: радуга перескакивает дальше, из-под острова — звёзды; новая фраза — вспышка
+                    // Strong beat: the rainbow jumps ahead, stars fly from under the island; a new phrase gives a flash
                     if (strong) Egg.hue.floatValue = (Egg.hue.floatValue + 40f) % 360f
                     if (!reduce) {
                         val b = Egg.scaled(body())
@@ -277,7 +277,7 @@ fun EggDriver(body: () -> Rect, s: IslandSettings) {
     }
 }
 
-/** Звёзды вылетают с нижнего края и боков острова наружу. [px] — пикселей в dp. */
+/** Stars fly outward from the bottom edge and sides of the island. [px] is pixels per dp. */
 private fun spawn(b: Rect, px: Float, n: Int, colorful: Boolean) {
     if (b.isEmpty) return
     repeat(n) {
@@ -329,7 +329,7 @@ private fun spawn(b: Rect, px: Float, n: Int, colorful: Boolean) {
     while (Egg.sparks.size > 90) Egg.sparks.removeAt(0)
 }
 
-/** Звёзды летят, тормозят и чуть падают — одинаково при любой частоте кадров. */
+/** Stars fly, slow down and fall slightly, the same at any frame rate. */
 private fun step(dt: Float, px: Float) {
     val drag = exp(-dt / 900f)
     val it = Egg.sparks.iterator()
@@ -348,7 +348,7 @@ private fun step(dt: Float, px: Float) {
     }
 }
 
-/** Радужное свечение за островом: ореол вспыхивает и расходится на каждую долю. */
+/** Rainbow glow behind the island: a halo flashes and spreads out on every beat. */
 @Composable
 fun EggGlow(body: () -> Rect) {
     Canvas(Modifier.fillMaxSize()) {
@@ -360,7 +360,7 @@ fun EggGlow(body: () -> Rect) {
         val e = Egg.pulse.floatValue
         val hue = Egg.hue.floatValue
         val corner = cornerOf(b)
-        // Кольца вдвое шире шага и перекрывают друг друга — свечение ровное, без полос
+        // Rings are twice as wide as the step and overlap each other, so the glow is even, without bands
         val gap = 2.2.dp.toPx() * (1f + 0.8f * e)
         val width = gap * 2f
         for (k in 1..10) {
@@ -378,7 +378,7 @@ fun EggGlow(body: () -> Rect) {
     }
 }
 
-/** Поверх острова: вспышка новой фразы и разлетающиеся звёзды. */
+/** On top of the island: the new phrase flash and flying stars. */
 @Composable
 fun EggSparks(body: () -> Rect) {
     Canvas(Modifier.fillMaxSize()) {
@@ -388,7 +388,7 @@ fun EggSparks(body: () -> Rect) {
         if (raw.isEmpty || i < 0.01f) return@Canvas
         val f = Egg.flash.floatValue
         if (f < 1f) {
-            // Радужная ударная волна: яркое кольцо и два бледнее снаружи
+            // Rainbow shockwave: a bright ring and two paler ones outside
             val b = Egg.scaled(raw)
             val corner = cornerOf(b)
             val width = 4.dp.toPx() * (1f - f) + 1.5f
@@ -414,8 +414,8 @@ fun EggSparks(body: () -> Rect) {
 }
 
 /**
- * Радужная кромка по краю острова. Рисуется внутри него, поэтому повторяет и форму, и подпрыгивание;
- * цвета бегут по кругу.
+ * Rainbow rim along the island edge. Drawn inside it, so it follows both the shape and the bounce;
+ * the colors run around the circle.
  */
 fun DrawScope.eggRim(corner: Float, notch: Boolean) {
     val i = Egg.intensity.floatValue
@@ -434,7 +434,7 @@ fun DrawScope.eggRim(corner: Float, notch: Boolean) {
     )
 }
 
-/** Четырёхлучевая звезда, как у точки сохранения. */
+/** Four-pointed star, like a save point. */
 private fun DrawScope.star(c: Offset, r: Float, rotation: Float, color: Color) {
     val path = Path()
     for (k in 0 until 8) {
@@ -448,7 +448,7 @@ private fun DrawScope.star(c: Offset, r: Float, rotation: Float, color: Color) {
     drawPath(path, color)
 }
 
-/** Душа — красное пиксельное сердце из Undertale; бьётся в такт песни. */
+/** The soul is a red pixel heart from Undertale; it beats to the song. */
 @Composable
 fun SoulHeart(modifier: Modifier = Modifier) {
     Icon(
@@ -462,9 +462,9 @@ fun SoulHeart(modifier: Modifier = Modifier) {
 }
 
 /**
- * Плашка в начале песни — как окно диалога из игры: белая рамка и строка, которая печатается по букве.
- * Сверху, по бокам от камеры, — душа с исполнителем и название песни, как шапка уведомления.
- * Нажатие открывает плеер.
+ * Banner at the start of the song: like a dialog box from the game, a white frame and a line printed letter by letter.
+ * At the top, on both sides of the camera: the soul with the artist, and the song title, like a notification header.
+ * Tapping opens the player.
  */
 @Composable
 fun EggBanner(n: Notice, s: IslandSettings) {
@@ -475,7 +475,7 @@ fun EggBanner(n: Notice, s: IslandSettings) {
     var typed by remember(n.id) { mutableIntStateOf(if (s.reduceEffects) line.length else 0) }
     LaunchedEffect(n.id) {
         while (typed < line.length) {
-            // Как в игре: буква за буквой, на точке — заминка
+            // As in the game: letter by letter, with a pause at a period
             delay(if (line[typed] in ".,!?") 180L else 42L)
             typed++
         }
@@ -505,7 +505,7 @@ fun EggBanner(n: Notice, s: IslandSettings) {
         ) {
             Text("*", color = Color.White, fontSize = 15.sp, lineHeight = 21.sp, fontFamily = FontFamily.Monospace)
             Spacer(Modifier.width(10.dp))
-            // Ещё не напечатанное уже занимает место — строки не перескакивают, пока текст печатается
+            // Text not yet printed already takes up space, so lines do not jump while the text is being printed
             Text(
                 buildAnnotatedString {
                     append(line.take(typed))

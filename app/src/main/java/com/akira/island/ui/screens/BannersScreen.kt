@@ -36,9 +36,9 @@ import com.akira.island.ui.Ui
 import com.akira.island.ui.posOf
 
 /**
- * Системные плашки, которые дублируют остров. Убрать чужую всплывающую плашку приложение не может,
- * поэтому здесь — быстрый переход к нужной настройке уведомлений: уведомление остаётся в шторке,
- * а на экране событие показывает только остров. Мессенджеры — те, чьи сообщения уже были в острове.
+ * System banners that duplicate the island. The app can't remove another app's pop-up banner,
+ * so this is a quick jump to the right notification setting: the notification stays in the shade,
+ * and on screen only the island shows the event. Messengers are those whose messages have already appeared in the island.
  */
 @Composable
 fun BannersScreen(onBack: () -> Unit) {
@@ -68,7 +68,7 @@ fun BannersScreen(onBack: () -> Unit) {
             )
         }
 
-        // Сообщения приходят и плашкой острова, и своей всплывающей — две сразу
+        // Messages arrive both as an island banner and as the app's own pop-up, two at once
         SectionHeader(tr("Мессенджеры", "Messengers"))
         if (messengers.isEmpty()) {
             GroupItem(Pos.Single, Icons.Rounded.ChatBubble, tr("Пока ни одно сообщение не пришло в остров", "No message has reached the island yet"),

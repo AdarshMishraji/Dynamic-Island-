@@ -31,12 +31,12 @@ import kotlin.math.min
 import kotlin.math.sin
 
 /**
- * Оплата вокруг острова — как в ролике. Пока ждём терминал, от острова расходятся сиреневые волны NFC;
- * когда оплата прошла, остров подпрыгивает, от него разлетаются зелёное кольцо и искры.
- * Выключается в «Эффектах» («Волны оплаты») и вместе со всеми — «Уменьшить эффекты».
+ * Payment around the island, as in the promo video. While we wait for the terminal, lilac NFC waves spread from the island;
+ * when payment succeeds, the island bounces and a green ring and sparks fly out from it.
+ * Turned off in "Effects" ("Payment waves") and, along with all effects, by "Reduce effects".
  */
 object PayFx {
-    /** Насколько остров сейчас больше обычного: на «Оплачено» он на миг подрастает на 6% */
+    /** How much bigger the island is than usual right now: on "Paid" it grows by 6% for a moment */
     val pop = mutableFloatStateOf(1f)
 }
 
@@ -50,7 +50,7 @@ fun PayEffects(primary: Act, body: () -> Rect, s: IslandSettings) {
     }
 }
 
-/** Волны NFC: новая каждые 0,9 с, расходится от краёв острова и гаснет за 1,35 с. */
+/** NFC waves: a new one every 0.9 s, spreading from the island's edges and fading in 1.35 s. */
 @Composable
 private fun PayWaves(body: () -> Rect, notch: Boolean) {
     val clock = rememberInfiniteTransition(label = "nfc")
@@ -70,7 +70,7 @@ private fun PayWaves(body: () -> Rect, notch: Boolean) {
     }
 }
 
-/** Успех: кольцо уходит от острова, искры разлетаются вниз и в стороны, остров подпрыгивает. */
+/** Success: the ring moves away from the island, sparks fly down and to the sides, the island bounces. */
 @Composable
 private fun PayBurst(body: () -> Rect, color: Color, notch: Boolean) {
     val p = remember { Animatable(0f) }
@@ -89,7 +89,7 @@ private fun PayBurst(body: () -> Rect, color: Color, notch: Boolean) {
         if (b.isEmpty || p.value >= 1f) return@Canvas
         val e = p.value
         outline(b, 4.dp.toPx() + e * 130.dp.toPx(), color.copy(alpha = 1f - e), 3.dp.toPx(), notch)
-        // 22 искры веером вниз: зелёные и белые, как в ролике
+        // 22 sparks fanning downward: green and white, as in the promo video
         val c = b.center
         for (i in 0 until 22) {
             val a = Math.toRadians(8.0 + 164.0 * i / 21).toFloat()
@@ -101,10 +101,10 @@ private fun PayBurst(body: () -> Rect, color: Color, notch: Boolean) {
     }
 }
 
-/** Случайные, но одни и те же на каждом кадре — искры не мерцают. */
+/** Random, but the same on every frame, so the sparks do not flicker. */
 private val Seeds = FloatArray(22) { i -> ((sin(i * 127.1 + 311.7) * 43758.5453) % 1.0).let { if (it < 0) it + 1.0 else it }.toFloat() }
 
-/** Скруглённый контур вокруг острова на расстоянии [d]: та же форма, только больше (у «Как вырез» — с прямым верхом). */
+/** A rounded outline around the island at distance [d]: the same shape, only larger (with a straight top for "Like cutout"). */
 private fun DrawScope.outline(b: Rect, d: Float, color: Color, width: Float, notch: Boolean) {
     val corner = min(b.height / 2f, 46.dp.toPx())
     drawIslandRect(

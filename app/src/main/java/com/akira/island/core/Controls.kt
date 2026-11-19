@@ -18,12 +18,12 @@ import android.media.session.MediaController
 import android.media.session.PlaybackState
 import android.os.SystemClock
 
-/** Команды, которые капсула отдаёт системе: плеер, таймер, фонарик, громкость. */
+/** Commands the capsule sends to the system: player, timer, flashlight, volume. */
 object Controls {
     @Volatile
     var mediaController: MediaController? = null
 
-    // Подставляет IslandService, пока он запущен
+    // Filled in by IslandService while it is running
     var torchOn: () -> Unit = {}
     var torchOff: () -> Unit = {}
     var torchLevel: (Int) -> Unit = {}
@@ -38,9 +38,9 @@ object Controls {
         IslandBus.focus.value = null
     }
 
-    // Плеер
+    // Player
 
-    /** Своя кнопка плеера — «Нравится» или «Не нравится». */
+    /** The player's own button, "Like" or "Dislike". */
     fun playerAction(action: String) {
         mediaController?.transportControls?.sendCustomAction(action, null)
     }
@@ -63,7 +63,7 @@ object Controls {
         mediaController?.transportControls?.seekTo(ms)
     }
 
-    // Таймер
+    // Timer
 
     fun startTimer(minutes: Int) {
         val total = minutes.coerceIn(1, 99) * 60_000L
@@ -93,7 +93,7 @@ object Controls {
         if (IslandBus.focus.value == "timer") collapse()
     }
 
-    // Секундомер
+    // Stopwatch
 
     fun startStopwatch() {
         IslandBus.stopwatch.value = StopwatchState(SystemClock.elapsedRealtime(), 0)
@@ -117,7 +117,7 @@ object Controls {
         if (IslandBus.focus.value == "stopwatch") collapse()
     }
 
-    // Прочее
+    // Other
 
     fun openApp(context: Context, pkg: String) {
         val intent = if (pkg == context.packageName) LauncherVisibility.settingsIntent(context)
@@ -127,7 +127,7 @@ object Controls {
         collapse()
     }
 
-    /** Нажать кнопку из уведомления (ответить, отклонить, открыть). */
+    /** Press a button from the notification (reply, decline, open). */
     fun send(context: Context, intent: PendingIntent?): Boolean {
         intent ?: return false
         return runCatching {
@@ -141,7 +141,7 @@ object Controls {
         }.isSuccess
     }
 
-    /** Отправить ответ через кнопку «Ответить» из уведомления — так же, как это делает шторка. */
+    /** Send a reply via the notification's "Reply" button, the same way the shade does. */
     fun sendReply(context: Context, action: MsgAction, text: String): Boolean {
         val clean = text.trim()
         if (clean.isEmpty() || action.inputs.isEmpty()) return false
@@ -155,7 +155,7 @@ object Controls {
         }.isSuccess
     }
 
-    // Звонки: сначала кнопка из уведомления звонилки, иначе системный сервис звонков
+    // Calls: first the button from the dialer's notification, otherwise the system telecom service
 
     @Suppress("DEPRECATION", "MissingPermission")
     fun answerCall(context: Context, call: CallInfo) {
@@ -191,8 +191,8 @@ object Controls {
     }
 
     /**
-     * Ответить или сбросить из острова не вышло — скорее всего, не дали разрешение «Звонки». Тогда открываем
-     * экран звонка телефона: там кнопки работают всегда. Нет и его — звонилку.
+     * Answering or hanging up from the island failed, most likely the "Calls" permission wasn't granted. Then we open
+     * the phone's call screen: its buttons always work. If that's missing too, the dialer.
      */
     @Suppress("MissingPermission")
     private fun showCallScreen(context: Context, call: CallInfo) {
@@ -203,12 +203,12 @@ object Controls {
         if (dialer.isNotEmpty()) openApp(context, dialer)
     }
 
-    /** Смахнули входящий звонок вверх — он уходит из острова (звонок продолжается, ответить можно в звонилке). */
+    /** Incoming call swiped up: it leaves the island (the call continues, and can be answered in the dialer). */
     fun hideIncomingCall() {
         IslandBus.callHidden.value = true
     }
 
-    /** Скриншот без острова — остров на миг прячется, снимок делает Android (9+) */
+    /** Screenshot without the island: the island hides for a moment, Android takes the shot (9+) */
     fun screenshot() {
         IslandBus.commands.tryEmit(ServiceCommand.SCREENSHOT)
     }
@@ -222,14 +222,14 @@ object Controls {
         IslandBus.commands.tryEmit(ServiceCommand.LOCK)
     }
 
-    /** Выключить службу острова, например на время банковского приложения. Включить её снова можно только в настройках */
+    /** Turn off the island service, e.g. while using a banking app. It can only be turned back on in settings */
     fun turnOffIsland() {
         IslandBus.commands.tryEmit(ServiceCommand.TURN_OFF)
     }
 
     /**
-     * Кнопка «Режим звука»: звонок → вибрация → без звука → звонок. «Без звука» Android разрешает только
-     * с доступом к «Не беспокоить» — без него кнопка переключает звонок и вибрацию и открывает этот доступ.
+     * "Ringer mode" button: ring → vibrate → silent → ring. Android allows "Silent" only
+     * with "Do Not Disturb" access; without it the button toggles ring and vibrate and opens that access.
      */
     fun cycleRinger(context: Context) {
         val audio = context.getSystemService(AudioManager::class.java) ?: return
@@ -246,7 +246,7 @@ object Controls {
         IslandBus.ringer.value = audio.ringerMode
     }
 
-    /** Кнопка «Не беспокоить»: включить или выключить. Без доступа открывает экран, где его дают. */
+    /** "Do Not Disturb" button: turn on or off. Without access it opens the screen where it's granted. */
     fun toggleDnd(context: Context) {
         val nm = context.getSystemService(NotificationManager::class.java) ?: return
         if (!nm.isNotificationPolicyAccessGranted) {
@@ -337,7 +337,7 @@ object Controls {
         if (call.pkg.isNotEmpty()) openApp(context, call.pkg)
     }
 
-    /** Пробный входящий звонок из приложения: кнопки работают, через 20 секунд он пропадает сам. */
+    /** Test incoming call from the app: buttons work, and after 20 seconds it disappears by itself. */
     fun showTestCall() {
         val now = System.currentTimeMillis()
         IslandBus.calls.value = IslandBus.calls.value +
@@ -350,7 +350,7 @@ object Controls {
 
     const val TEST_CALL = "test-call"
 
-    /** Пробная навигация: широкая плашка, потом капсула; через 10 секунд пропадает сама, даже если выйти из приложения. */
+    /** Test navigation: wide banner, then capsule; disappears by itself after 10 seconds, even if you leave the app. */
     fun showTestLive(context: Context) {
         val live = LiveInfo(
             key = TEST_LIVE, pkg = context.packageName, kind = LiveKind.NAV,
@@ -402,7 +402,7 @@ object Controls {
 
     const val TEST_PROGRESS = "test-progress"
 
-    /** Куда выводится звук: системная панель громкости с выбором устройства. */
+    /** Where audio is output: the system volume panel with a device picker. */
     fun openOutput(context: Context) {
         val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             Intent(Settings.Panel.ACTION_VOLUME)

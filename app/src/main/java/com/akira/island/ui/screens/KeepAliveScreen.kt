@@ -25,9 +25,9 @@ import com.akira.island.ui.SectionHeader
 import com.akira.island.ui.Tile
 
 /**
- * «Чтобы остров не закрывался»: Xiaomi (HyperOS), Oppo, realme, OnePlus (ColorOS), Samsung и другие сами
- * выгружают приложения в фоне — особенно если смахнуть их из недавних. Здесь кнопки прямо в нужные
- * настройки этой прошивки и подсказка, как закрепить остров в недавних.
+ * "To keep the island from closing": Xiaomi (HyperOS), Oppo, realme, OnePlus (ColorOS), Samsung and others
+ * unload background apps on their own, especially if you swipe them from recents. Here are buttons straight to the right
+ * settings of this firmware and a hint on how to pin the island in recents.
  */
 @Composable
 fun KeepAliveScreen(onBack: () -> Unit) {
@@ -39,7 +39,7 @@ fun KeepAliveScreen(onBack: () -> Unit) {
     Page(tr("Чтобы остров не закрывался", "Keep the island running"), onBack,
         subtitle = tr("Прошивка телефона может выгружать остров в фоне — тогда он пропадает, пока его не включить снова",
             "Your phone's firmware may stop the island in the background — then it disappears until you turn it on again")) {
-        // Процесс со службой на переднем плане Android не закрывает, когда приложение смахивают из недавних
+        // Android does not kill a process with a foreground service when the app is swiped from recents
         GroupToggle(
             Pos.Single, Icons.Rounded.PushPin, tr("Не выгружать остров", "Keep the island loaded"),
             tr("Остров не пропадёт, даже если смахнуть приложение из недавних. Android может показать тихое уведомление",
@@ -81,7 +81,7 @@ fun KeepAliveScreen(onBack: () -> Unit) {
     }
 }
 
-/** Пункт «Чтобы остров не закрывался» — в «Разрешениях» и «О приложении». */
+/** The "To keep the island from closing" item is in "Permissions" and "About". */
 @Composable
 internal fun KeepAliveItem(pos: Pos, open: (Screen) -> Unit) {
     GroupItem(pos, Icons.Rounded.BatteryChargingFull, tr("Чтобы остров не закрывался", "Keep the island running"),
@@ -89,7 +89,7 @@ internal fun KeepAliveItem(pos: Pos, open: (Screen) -> Unit) {
         onClick = { open(Screen.KEEPALIVE) }, color = Tile.Green) { Arrow() }
 }
 
-/** «О приложении» в настройках Android: ограниченные настройки, разрешения, батарея. */
+/** "App info" in Android settings: restricted settings, permissions, battery. */
 @Composable
 internal fun AppDetailsItem(pos: Pos) {
     val context = LocalContext.current

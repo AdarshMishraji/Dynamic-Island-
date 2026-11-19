@@ -16,9 +16,9 @@ import com.akira.island.data.SettingsRepo
 import com.akira.island.data.LauncherVisibility
 
 /**
- * Плитка «Остров» в шторке. Банки (K PLUS, GCash и другие) не пускают, пока включена служба спец. возможностей
- * не из Play Маркета. Нажали плитку — остров выключился, можно в банк; нажали снова — открываются
- * спец. возможности, чтобы включить его обратно: включить службу сама Android приложению не даёт.
+ * "Island" tile in the shade. Banks (K PLUS, GCash and others) refuse to work while an accessibility service
+ * not from Play Store is on. Tap the tile: the island turns off, and you can go to the bank; tap again: accessibility
+ * settings open to turn it back on, because Android does not let an app enable the service itself.
  */
 class IslandTile : TileService() {
     override fun onTileAdded() {
@@ -44,7 +44,7 @@ class IslandTile : TileService() {
         SettingsRepo.init(this)
         if (IslandBus.serviceRunning.value) {
             Controls.turnOffIsland()
-            // Служба выключится через мгновение — плитку гасим сразу
+            // The service will turn off in a moment: dim the tile right away
             qsTile?.let {
                 it.state = Tile.STATE_INACTIVE
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) it.subtitle = tr("Выключен", "Off")
@@ -66,7 +66,7 @@ class IslandTile : TileService() {
     }
 
     companion object {
-        /** Остров включили или выключили — плитка перерисуется, когда шторку откроют */
+        /** The island was turned on or off: the tile is redrawn when the shade is opened */
         fun refresh(context: Context) {
             runCatching { requestListeningState(context, ComponentName(context, IslandTile::class.java)) }
         }

@@ -8,9 +8,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
- * Включает погашенный экран, когда звонит таймер или идёт входящий вызов. Главный способ — флаг окна
- * острова (IslandService.setAlarmScreen); здесь запасные: будильник экрана у системы, а если и он не
- * сработал (прошивка не пускает), — прозрачный экран приложения поверх блокировки.
+ * Turns on a screen that is off when a timer rings or an incoming call arrives. The main way is the flag of the island
+ * window (IslandService.setAlarmScreen); these are fallbacks: a screen alarm from the system, and if that
+ * doesn't work either (the firmware doesn't allow it), a transparent app screen over the lock screen.
  */
 object ScreenWaker {
     fun wake(context: Context, scope: CoroutineScope, stillNeeded: () -> Boolean) {

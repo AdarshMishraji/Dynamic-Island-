@@ -156,13 +156,13 @@ fun ExpandedContent(act: Act, s: IslandSettings, lyrics: Lyrics?, battery: Batte
 
 @Composable
 private fun ExpandedContentBody(act: Act, s: IslandSettings, lyrics: Lyrics?, battery: BatteryInfo, width: Dp) {
-    // Фонарик, как в iOS 18, — не широкая плашка, а высокая карточка с лучом
+    // Flashlight, like in iOS 18: not a wide banner but a tall card with a beam
     if (act is Act.TorchA) {
         TorchCard(act.t, s)
         return
     }
-    // Сверху — полоса камеры: содержимое начинается ниже выреза, чтобы он ничего не закрывал.
-    // Само содержимое — крупнее или мельче по «Размеру содержимого»
+    // At the top is the camera strip: content starts below the cutout so it never covers anything.
+    // The content itself is larger or smaller per "Content size"
     Box(Modifier.width(width).heightIn(max = s.expandedMaxHeight.dp)
         .padding(start = 22.dp, end = 22.dp, top = cameraInset(s), bottom = 20.dp)) {
         Scaled(s.contentScale) {
@@ -180,7 +180,7 @@ private fun ExpandedContentBody(act: Act, s: IslandSettings, lyrics: Lyrics?, ba
                 is Act.AlarmA -> AlarmExpanded(act.a, s)
                 is Act.InboxA -> InboxExpanded(act.items)
                 is Act.Launcher -> LauncherExpanded(s)
-                // Зарядка раскрывается как пустой остров: часы, заряд и кнопки — зарядка не закрывает их собой
+                // Charging expands as an empty island: clock, charge and buttons; charging does not cover them
                 else -> IdleExpanded(s, battery)
             }
         }
@@ -188,8 +188,8 @@ private fun ExpandedContentBody(act: Act, s: IslandSettings, lyrics: Lyrics?, ba
 }
 
 /**
- * «История уведомлений» раскрытой: последние уведомления, новое сверху. Нажатие открывает уведомление,
- * «Очистить» убирает все. На заблокированном телефоне — как в шторке: скрытые без имени и текста.
+ * "Notification history" of the expanded island: latest notifications, newest on top. Tapping opens the notification,
+ * "Clear" removes all. On a locked phone it works like the shade: hidden ones show no name or text.
  */
 @Composable
 private fun InboxExpanded(items: List<InboxItem>) {
@@ -253,10 +253,10 @@ private fun InboxExpanded(items: List<InboxItem>) {
     }
 }
 
-/** Сколько уведомлений истории видно в раскрытом острове: больше в окно не помещается. */
+/** How many history notifications show in the expanded island: more won't fit in the window. */
 private const val INBOX_SHOWN = 5
 
-/** «сейчас», «5 мин», «2 ч». */
+/** "now", "5 min", "2 h". */
 private fun ago(ms: Long): String {
     val min = ms / 60_000
     return when {
@@ -267,8 +267,8 @@ private fun ago(ms: Long): String {
 }
 
 /**
- * Плеер — как в ролике: обложка 60, название 18 и исполнитель, справа волна; строка текста песни
- * заливается белым по мере пения; время по краям тонкой полосы и три кнопки посередине.
+ * Player, as in the promo video: cover 60, title 18 and artist, waveform on the right; a lyrics line
+ * fills with white as it is sung; time at the ends of a thin bar and three buttons in the middle.
  */
 @Composable
 private fun MediaExpanded(m: MediaInfo, s: IslandSettings, lyrics: Lyrics?, battery: BatteryInfo) {
@@ -335,7 +335,7 @@ private fun MediaLyrics(m: MediaInfo, s: IslandSettings, lyrics: Lyrics?, clock:
 @Composable
 private fun MediaSeek(m: MediaInfo, clock: State<Long>) {
     val pos = m.positionAt(rememberNow(1_000, active = m.playing))
-    // Время по краям полосы, как на iPhone и в ролике
+    // Time at the ends of the bar, as on iPhone and in the promo video
     Spacer(Modifier.height(14.dp))
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(formatDuration(pos), color = Tints.Gray, fontSize = 11.sp, style = Digits.copy(fontWeight = FontWeight.Normal.island),
@@ -356,8 +356,8 @@ private fun MediaSeek(m: MediaInfo, clock: State<Long>) {
 }
 
 /**
- * Кнопки плеера сразу под полосой. Отдельно от полосы и времени: те обновляются 10 раз в секунду,
- * а кнопки при этом не перерисовываются.
+ * Player buttons right under the bar. Separate from the bar and time: those update 10 times a second,
+ * while the buttons are not redrawn.
  */
 @Composable
 private fun MediaControls(like: PlayerAction?, dislike: PlayerAction?, playing: Boolean) {
@@ -396,7 +396,7 @@ private fun MediaControls(like: PlayerAction?, dislike: PlayerAction?, playing: 
     }
 }
 
-/** Идущий разговор: аватар, имя, длительность и кнопка «завершить». */
+/** Ongoing call: avatar, name, duration and an "end" button. */
 @Composable
 private fun CallExpanded(c: CallInfo) {
     val context = LocalContext.current
@@ -422,7 +422,7 @@ private fun CallExpanded(c: CallInfo) {
 }
 
 /**
- * Мягкая непрерывная подсветка внутри строки и плавная смена по настоящим LRC-меткам.
+ * Soft continuous highlight inside the line and a smooth change by real LRC timestamps.
  */
 @Composable
 private fun KaraokeLine(lyrics: Lyrics, pos: Long, s: IslandSettings, playing: Boolean, durationMs: Long) {
@@ -506,7 +506,7 @@ private fun SeekBar(
     }
 }
 
-/** Таймер как на iPhone: слева оранжевая «пауза» и серый крестик, справа «Таймер» и крупное время. */
+/** Timer as on iPhone: orange "pause" and a gray cross on the left, "Timer" and large time on the right. */
 @Composable
 private fun TimerExpanded(t: TimerState, s: IslandSettings) {
     val now = rememberNow(1_000, active = t.pausedLeft == null && !t.ringing)
@@ -594,9 +594,9 @@ private fun StopwatchExpanded(w: StopwatchState) {
 private fun lapTime(ms: Long): String = formatDuration(ms) + ",%d".format((ms % 1000) / 100)
 
 /**
- * Фонарик — как в ролике: квадратная карточка, посередине жёлтый фонарик в мягком свечении, под ним
- * «Фонарик · 80%». Провести пальцем вверх или вниз — ярче или тусклее (если телефон это умеет): свечение
- * растёт и вспыхивает на каждом шаге. Нажатие — выключить.
+ * Flashlight, as in the promo video: a square card, a yellow flashlight in a soft glow in the middle, below it
+ * "Flashlight · 80%". Swipe up or down for brighter or dimmer (if the phone supports it): the glow
+ * grows and flashes on every step. Tap to turn off.
  */
 @Composable
 private fun TorchCard(t: TorchState, s: IslandSettings) {
@@ -606,7 +606,7 @@ private fun TorchCard(t: TorchState, s: IslandSettings) {
     LaunchedEffect(t.level) { level = t.level.toFloat() }
     val share = if (t.on) (if (max > 1) level / max else 1f) else 0f
     val intensity by animateFloatAsState(share, spring(dampingRatio = 0.7f, stiffness = 300f), label = "glow")
-    // Свечение «дышит», как в ролике
+    // The glow "breathes", as in the promo video
     val breath = rememberInfiniteTransition(label = "breath")
     val wave = if (s.reduceEffects) null else breath.animateFloat(0f, 1f, infiniteRepeatable(tween(1050, easing = LinearEasing)), label = "w")
     val flare = remember { Animatable(0f) }
@@ -644,7 +644,7 @@ private fun TorchCard(t: TorchState, s: IslandSettings) {
             },
     ) {
         Canvas(Modifier.fillMaxSize()) {
-            // Жёлтое свечение за фонариком: круг 120 dp, ярче с яркостью фонарика и на каждом шаге
+            // Yellow glow behind the flashlight: a 120 dp circle, brighter with the flashlight's brightness and on every step
             val pulse = wave?.let { 0.85f + 0.15f * sin(it.value * 2 * Math.PI).toFloat() } ?: 1f
             val glow = (0.35f + 0.65f * intensity) * pulse * (1f + 0.4f * flare.value)
             val r = 60.dp.toPx() * (1f + 0.15f * flare.value)
@@ -670,7 +670,7 @@ private fun TorchCard(t: TorchState, s: IslandSettings) {
     }
 }
 
-/** Таймеры Часов и подтверждённая запись: звуковая волна только у диктофона. */
+/** Clock timers and confirmed recording: the sound wave is only for the voice recorder. */
 @Composable
 private fun ChronoExpanded(c: ChronoInfo, s: IslandSettings) {
     val context = LocalContext.current
@@ -726,7 +726,7 @@ private fun ChronoExpanded(c: ChronoInfo, s: IslandSettings) {
         }
         return
     }
-    // «Часы» — с кнопками, как свой таймер; другие приложения с отсчётом — просто время, нажатие открывает их
+    // "Clock" has buttons, like our own timer; other apps with a countdown show just the time, and tapping opens them
     if (c.key.startsWith(ClockScreenReader.KEY_PREFIX) || c.pause != null || c.resume != null || ClockApps.isClock(context, c.pkg)) {
         ClockChrono(c)
         return
@@ -744,8 +744,8 @@ private fun ChronoExpanded(c: ChronoInfo, s: IslandSettings) {
 }
 
 /**
- * Таймер и секундомер «Часов» — с теми же кнопками, что свои: пауза или продолжить и сброс.
- * Кнопки нажимают кнопки «Часов» (см. ClockControl); нажатие на время открывает приложение.
+ * The Clock app's timer and stopwatch have the same buttons as our own: pause or resume and reset.
+ * The buttons press the Clock app's buttons (see ClockControl); tapping the time opens the app.
  */
 @Composable
 private fun ClockChrono(c: ChronoInfo) {
@@ -777,7 +777,7 @@ private fun ClockChrono(c: ChronoInfo) {
     }
 }
 
-/** Волна записи: слева идут красные столбики, справа ждёт пунктир — как у диктофона в острове. */
+/** Recording wave: red bars move on the left, a dotted line waits on the right, like the voice recorder in the island. */
 @Composable
 private fun RecordingWave(modifier: Modifier, animate: Boolean) {
     val clock = rememberFxClock(animate)
@@ -843,8 +843,8 @@ private fun ProgressExpanded(p: ProgressInfo, s: IslandSettings) {
 }
 
 /**
- * Навигатор, такси, доставка — как в ролике: слева круг со стрелкой, справа расстояние крупно, подсказка,
- * время прибытия цветом и маленькая кнопка «Открыть».
+ * Navigation, taxi, delivery, as in the promo video: a circle with an arrow on the left, large distance on the right, a hint,
+ * arrival time in color and a small "Open" button.
  */
 @Composable
 private fun LiveExpanded(l: LiveInfo) {
@@ -889,8 +889,8 @@ private fun LiveExpanded(l: LiveInfo) {
 }
 
 /**
- * Раскрытый пустой остров: часы, заряд и кнопки, которые выбрали в «Поведении» (по умолчанию таймер,
- * секундомер и фонарик). Кнопок нет — только часы и заряд, остров компактный.
+ * Expanded empty island: clock, charge and the buttons chosen in "Behavior" (timer,
+ * stopwatch and flashlight by default). No buttons: only clock and charge, and the island is compact.
  */
 @Composable
 private fun IdleExpanded(s: IslandSettings, battery: BatteryInfo) {
@@ -899,7 +899,7 @@ private fun IdleExpanded(s: IslandSettings, battery: BatteryInfo) {
     val locked by IslandBus.locked.collectAsState()
     val now = rememberWallNow(1000)
     val time = DateFormat.getTimeFormat(context).format(Date(now))
-    // «Пятница, 24 октября» или «Friday, October 24» — на языке острова
+    // "Пятница, 24 октября" or "Friday, October 24" in the island's language
     val pattern = when (Lang.code) {
         "en" -> "EEEE, MMMM d"
         "pt" -> "EEEE, d 'de' MMMM"
@@ -916,7 +916,7 @@ private fun IdleExpanded(s: IslandSettings, battery: BatteryInfo) {
             Column(Modifier.weight(1f)) {
                 Text(clockText(time, 36.sp), color = Color.White, fontSize = 36.sp, style = Digits)
                 Text(date, color = Dim, fontSize = 14.sp)
-                // Ближайший будильник в пределах суток — под датой, как на экране блокировки iPhone
+                // The nearest alarm within a day goes under the date, as on the iPhone lock screen
                 alarm?.takeIf { it.triggerAt - now in 1..86_400_000L }?.let { a ->
                     Row(
                         Modifier.padding(top = 3.dp).clickable { openAlarm(context, a) },
@@ -971,9 +971,9 @@ private fun IdleExpanded(s: IslandSettings, battery: BatteryInfo) {
                 if (runCatching { context.startActivity(intent) }.isSuccess) Controls.collapse()
                 else android.widget.Toast.makeText(context, tr("Не удалось открыть редактор будильника", "Could not open the alarm editor"), android.widget.Toast.LENGTH_SHORT).show()
             }
-            // Таймер от 1 до 99 минут
+            // Timer from 1 to 99 minutes
             if (QuickAction.TIMER in actions) IdleTimerPicker(s)
-            // Остальные кнопки — по две в ряд, в порядке из настроек
+            // The other buttons go two per row, in the order from settings
             actions.filter { it != QuickAction.TIMER }.chunked(2).forEach { row ->
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     row.forEach { QuickButton(it, context, Modifier.weight(1f)) }
@@ -1053,7 +1053,7 @@ internal fun quickIcon(a: QuickAction): androidx.compose.ui.graphics.vector.Imag
     }
 }
 
-/** «Режим звука» shows the current mode instead of its name. */
+/** "Режим звука" shows the current mode instead of its name. */
 @Composable
 internal fun quickLabel(a: QuickAction): String {
     val ringer by IslandBus.ringer.collectAsState()

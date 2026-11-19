@@ -1,8 +1,8 @@
 """
-Музыка и звуковые эффекты для промо-ролика — синтезируются с нуля (без чужих сэмплов,
-можно спокойно выкладывать в TikTok). Моменты совпадают с кадрами в src/IslandPromo/index.tsx.
+Music and sound effects for the promo video — synthesized from scratch (no third-party samples,
+safe to post on TikTok). Cue times match the frames in src/IslandPromo/index.tsx.
 
-    python3 scripts/make_audio.py   →   public/audio/promo.wav (+ promo.mp3, если есть ffmpeg)
+    python3 scripts/make_audio.py   →   public/audio/promo.wav (+ promo.mp3 if ffmpeg is available)
 """
 import os
 import subprocess
@@ -26,7 +26,7 @@ def t_of(n):
 
 
 def add(sig, at, gain=1.0, pan=0.0):
-    """Положить звук в момент at (секунды); pan от -1 (лево) до 1 (право)."""
+    """Place a sound at time `at` (seconds); pan from -1 (left) to 1 (right)."""
     i = int(at * SR)
     if i >= N:
         return
@@ -42,7 +42,7 @@ def env(n, a=0.005, d=0.2, curve=4.0):
 
 
 def lowpass(x, cutoff):
-    # Простой однополюсный фильтр, cutoff может меняться во времени
+    # Simple one-pole filter, the cutoff can change over time
     cutoff = np.broadcast_to(cutoff, x.shape)
     a = 1 - np.exp(-2 * np.pi * cutoff / SR)
     y = np.empty_like(x)
@@ -57,11 +57,11 @@ def note(m):
     return 440.0 * 2 ** ((m - 69) / 12)
 
 
-# ——— Музыка: 112 BPM, C — G — Am — F ———
+# ——— Music: 112 BPM, C — G — Am — F ———
 BPM = 112
 BEAT = 60 / BPM
-START = 110 / FPS          # телефон появляется — вступают барабаны
-DROP_END = 1460 / FPS       # финал — барабаны уходят
+START = 110 / FPS          # phone appears — drums come in
+DROP_END = 1460 / FPS       # finale — drums drop out
 CHORDS = [[48, 55, 60, 64, 67], [43, 55, 59, 62, 67], [45, 57, 60, 64, 69], [41, 53, 57, 60, 65]]
 
 
@@ -70,7 +70,7 @@ def pad(freqs, dur, gain=0.12):
     t = t_of(n)
     s = np.zeros(n)
     for f in freqs:
-        for det in (-0.12, 0.0, 0.12):  # лёгкий «хорус»
+        for det in (-0.12, 0.0, 0.12):  # light "chorus"
             ff = f * 2 ** (det / 12)
             s += np.sin(2 * np.pi * ff * t) + 0.3 * np.sin(4 * np.pi * ff * t)
     a = np.minimum(1, t / 0.6) * np.minimum(1, (dur - t) / 0.6)
@@ -132,14 +132,14 @@ while t0 < DUR - 0.5:
             if b in (1, 3):
                 add(clap(), tb, 0.35, pan=-0.1)
             add(bass(ch[0] - 12 + (0 if b % 2 == 0 else 12), BEAT * 0.9), tb, 0.32)
-        # Арпеджио восьмыми
+        # Eighth-note arpeggio
         arp = [ch[2] + 12, ch[3] + 12, ch[4] + 12, ch[3] + 12]
         for j in range(8):
             add(pluck(arp[j % 4]), t0 + j * BEAT / 2, 0.11, pan=(-0.4 if j % 2 else 0.4))
     t0 += bar
     k += 1
 
-# ——— Эффекты ———
+# ——— Effects ———
 def whoosh(dur=0.45, up=True):
     n = int(dur * SR)
     t = t_of(n)
@@ -185,7 +185,7 @@ def riser(dur=2.6):
 
 
 def ring():
-    # Двухтональный звонок, как входящий вызов
+    # Two-tone ring, like an incoming call
     out = np.zeros(int(1.6 * SR))
     for r in range(2):
         n = int(0.5 * SR)
@@ -208,35 +208,35 @@ def shimmer(dur=1.8):
 
 f = lambda frame: frame / FPS  # noqa: E731
 
-# Заставка: тихий колокольчик, подъём и удар, когда появляется телефон
+# Intro: a soft bell, a rise and a hit when the phone appears
 add(chime([72, 76, 79, 84], 1.6, 0.12), f(6), 0.18)
 add(riser(), f(110) - 2.6, 0.22)
 add(impact(), f(110), 0.55)
 
-# Смены острова (кадры из ISLAND)
+# Island changes (frames from ISLAND)
 for fr in [205, 275, 355, 420, 545, 665, 790, 900, 960, 1080, 1205]:
     add(whoosh(0.35), f(fr) - 0.08, 0.10, pan=0.15)
     add(blip(1500 if fr in (275, 355, 900) else 1100), f(fr) + 0.02, 0.10)
 
-# Заголовки глав — мягкий «вжух»
+# Chapter titles: a soft "whoosh"
 for fr in [175, 345, 535, 655, 780, 890, 1070]:
     add(whoosh(0.5), f(fr), 0.07, pan=-0.2)
 
-add(blip(900, 0.25), f(205) + 0.4, 0.06)            # батарейка заполняется
-add(ring(), f(545) + 0.1, 0.10)                     # звонок
-add(chime([79, 84, 88], 1.0, 0.11), f(665) + 0.05, 0.16)  # сообщение
-for i in range(4):                                  # режим звука: колокольчик дрожит
+add(blip(900, 0.25), f(205) + 0.4, 0.06)            # battery fills up
+add(ring(), f(545) + 0.1, 0.10)                     # ring
+add(chime([79, 84, 88], 1.0, 0.11), f(665) + 0.05, 0.16)  # message
+for i in range(4):                                  # sound mode: bell shakes
     add(blip(2200 - i * 150, 0.04), f(790) + 0.05 + i * 0.07, 0.07)
-for i in range(6):                                  # таймер тикает
+for i in range(6):                                  # timer ticks
     add(blip(2600, 0.02), f(960) + i * 1.0, 0.05)
-add(shimmer(), f(1080) + 0.05, 0.12)                # фонарик
-for i in range(7):                                  # «И ещё» — пункты списка
+add(shimmer(), f(1080) + 0.05, 0.12)                # flashlight
+for i in range(7):                                  # "And more" — list items
     add(blip(1200 + i * 90, 0.06), f(1310 + i * 12), 0.08)
-add(whoosh(0.7, up=False), f(1235), 0.12)           # телефон уезжает
-add(impact(), f(1468), 0.35)                        # финальный экран
+add(whoosh(0.7, up=False), f(1235), 0.12)           # phone slides away
+add(impact(), f(1468), 0.35)                        # final screen
 add(chime([60, 64, 67, 72, 76], 2.6, 0.14), f(1468), 0.2)
 
-# Сведение: общая громкость, нарастание в начале и затухание в конце
+# Mix: overall volume, fade-in at the start and fade-out at the end
 mix = np.stack([L, R])
 tt = t_of(N)
 fade = np.minimum(1, tt / 0.3) * np.clip((DUR - tt) / 2.5, 0, 1)
@@ -258,4 +258,4 @@ try:
     subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", out, "-b:a", "192k", mp3], check=True)
     print("ok", mp3)
 except Exception as e:  # noqa: BLE001
-    print("mp3 не сделан:", e)
+    print("mp3 not created:", e)

@@ -135,7 +135,7 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         LauncherVisibility.refresh(this)
-        // «Не выгружать остров»: из фона Android может не запустить службу — запускаем, пока приложение открыто
+        // "Keep the island loaded": from the background Android may not start the service, so we start it while the app is open
         KeepAliveService.sync(this)
     }
 }
@@ -163,10 +163,10 @@ private fun AppRoot(launcherSettingsRequest: Int) {
         }
     }
 
-    // Раз в 3 часа спрашиваем GitHub, не вышла ли новая версия; после обновления — «Что нового»
+    // Every 3 hours we ask GitHub whether a new version is out; after an update, "What's new"
     val context = LocalContext.current
     LaunchedEffect(Unit) { UpdateChecker.check(context.applicationContext, force = false) }
-    // Сменили язык — экраны рисуются заново на нём, а открытая вкладка и экран остаются
+    // The language changed: screens are redrawn in it, while the open tab and screen stay
     LangScope {
         WhatsNewDialog()
 
@@ -233,7 +233,7 @@ private fun AppRoot(launcherSettingsRequest: Int) {
     }
 }
 
-/** Вкладки: главная, что показывает остров, как он выглядит, и о приложении — отдельно от настроек. */
+/** Tabs: home, what the island shows, how it looks, and about the app, separate from the settings. */
 private fun tabTitles() = listOf(tr("Главная", "Home"), tr("Функции", "Features"), tr("Оформление", "Appearance"), tr("О приложении", "About"))
 
 @Composable
@@ -277,7 +277,7 @@ private fun BottomBar(selected: Int, onSelect: (Int) -> Unit) {
     }
 }
 
-/** Подпись вкладки: если не влезает (крупный шрифт Android), чуть уменьшается, а не обрезается. */
+/** The tab label: if it doesn't fit (large Android font), it shrinks slightly instead of being cut off. */
 @Composable
 private fun TabLabel(text: String, color: androidx.compose.ui.graphics.Color, bold: Boolean) {
     val measurer = rememberTextMeasurer()

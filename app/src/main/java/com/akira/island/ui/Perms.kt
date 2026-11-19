@@ -29,7 +29,7 @@ object Perms {
         Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
             ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
 
-    /** Звонки: состояние вызова обязательно, остальное — номер, имя и ответ кнопкой. */
+    /** Calls: call state is required, the rest is the number, the name and answering with a button. */
     val CALL_PERMISSIONS = buildList {
         add(Manifest.permission.READ_PHONE_STATE)
         add(Manifest.permission.READ_CALL_LOG)
@@ -56,22 +56,22 @@ object Perms {
         if (!start(context, intent)) start(context, Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
     }
 
-    /** Здесь в меню «⋮» прячется «Разрешить ограниченные настройки» (Android 13+). */
+    /** Here the "⋮" menu hides "Allow restricted settings" (Android 13+). */
     fun openAppDetails(context: Context) =
         start(context, Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${context.packageName}")))
 
-    /** Батарея «Без ограничений»: система не усыпляет и не выгружает остров. */
+    /** Battery "Unrestricted": the system doesn't put the island to sleep or unload it. */
     fun batteryUnrestricted(context: Context): Boolean =
         context.getSystemService(PowerManager::class.java)?.isIgnoringBatteryOptimizations(context.packageName) == true
 
-    /** Список «Оптимизация батареи»; если его нет — «О приложении», там «Батарея». */
+    /** The "Battery optimization" list; if it isn't there, "App info", where "Battery" is. */
     fun openBattery(context: Context) {
         if (!start(context, Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))) openAppDetails(context)
     }
 
     /**
-     * Чей телефон: у каждой прошивки свой автозапуск и своё закрепление в недавних.
-     * [marks] — как прошивка подписывает производителя, [autostart] — её экраны «Автозапуск», от новых к старым.
+     * Whose phone it is: each firmware has its own autostart and its own pinning in recents.
+     * [marks] is how the firmware labels the manufacturer, [autostart] is its "Autostart" screens, from newest to oldest.
      */
     enum class Vendor(val marks: List<String>, val autostart: List<String> = emptyList()) {
         XIAOMI(listOf("xiaomi", "redmi", "poco"), listOf(
@@ -101,7 +101,7 @@ object Perms {
         OTHER(emptyList()),
     }
 
-    /** Производитель не меняется — определяем один раз. */
+    /** The manufacturer doesn't change, so we determine it once. */
     private val vendor: Vendor by lazy {
         val m = "${Build.MANUFACTURER} ${Build.BRAND}".lowercase()
         Vendor.entries.firstOrNull { v -> v.marks.any { it in m } } ?: Vendor.OTHER
@@ -109,10 +109,10 @@ object Perms {
 
     fun vendor(): Vendor = vendor
 
-    /** Есть ли у этой прошивки свой «Автозапуск». */
+    /** Whether this firmware has its own "Autostart". */
     fun hasAutostart(): Boolean = vendor.autostart.isNotEmpty()
 
-    /** Открыть «Автозапуск» прошивки; не вышло — «О приложении». */
+    /** Open the firmware's "Autostart"; if that fails, "App info". */
     fun openAutostart(context: Context) {
         val opened = vendor.autostart.any { name ->
             ComponentName.unflattenFromString(name)?.let { start(context, Intent().setComponent(it)) } == true

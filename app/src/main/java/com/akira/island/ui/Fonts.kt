@@ -7,7 +7,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import com.akira.island.R
 
-/** Inter — свободный шрифт, близкий к SF Pro на iPhone (лицензия OFL, docs/licenses/Inter-OFL.txt). */
+/** Inter is a free font close to SF Pro on iPhone (OFL license, docs/licenses/Inter-OFL.txt). */
 val Inter = FontFamily(
     Font(R.font.inter_regular, FontWeight.Normal),
     Font(R.font.inter_medium, FontWeight.Medium),
@@ -17,7 +17,7 @@ val Inter = FontFamily(
 
 private fun TextStyle.inter() = copy(fontFamily = Inter)
 
-/** Все стили Material 3 — шрифтом Inter. */
+/** All Material 3 styles use the Inter font. */
 val InterTypography: Typography = Typography().let { t ->
     t.copy(
         displayLarge = t.displayLarge.inter(),

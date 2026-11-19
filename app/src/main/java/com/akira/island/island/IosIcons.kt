@@ -8,14 +8,14 @@ import androidx.compose.ui.res.vectorResource
 import com.akira.island.R
 
 /**
- * Иконки острова. Главные — те же простые фигуры, что в промо-ролике 1.6: молния, трубка, месяц, песочные
- * часы, колокольчик, фонарик, наушники, Wi-Fi, самолёт, навигатор, скачивание, стрелка ответа и кнопки
- * плеера. Остальные — набор Ionicons (MIT, https://ionic.io/ionicons). В приложении настроек — Material.
+ * Island icons. The main ones are the same simple shapes as in promo video 1.6: lightning bolt, handset, moon, hourglass,
+ * bell, flashlight, headphones, Wi-Fi, airplane, navigation, download, reply arrow and the player
+ * buttons. The rest are from the Ionicons set (MIT, https://ionic.io/ionicons). The settings app uses Material.
  */
 object Ios {
     private val cache = HashMap<Int, ImageVector>()
 
-    /** Для кода вне Compose: службы и события. */
+    /** For code outside Compose: services and events. */
     fun load(context: Context, @DrawableRes id: Int): ImageVector = synchronized(cache) {
         cache.getOrPut(id) { ImageVector.vectorResource(null, context.resources, id) }
     }

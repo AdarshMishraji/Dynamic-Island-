@@ -13,7 +13,7 @@ import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 
-/** Compose в окне службы нужен свой жизненный цикл — у службы нет Activity. */
+/** Compose in a service window needs its own lifecycle: a service has no Activity. */
 class OverlayLifecycleOwner : LifecycleOwner, SavedStateRegistryOwner, ViewModelStoreOwner {
     private val registry = LifecycleRegistry(this)
     private val savedState = SavedStateRegistryController.create(this)
@@ -30,9 +30,9 @@ class OverlayLifecycleOwner : LifecycleOwner, SavedStateRegistryOwner, ViewModel
     }
 
     /**
-     * Остров спрятан — жизненный цикл опускается до CREATED, и Compose в окне острова останавливает кадры:
-     * ни анимаций, ни перерисовки, ни пробуждений ради них. Показался — снова RESUMED, и всё, что поменялось,
-     * рисуется одним кадром.
+     * When the island is hidden, the lifecycle drops to CREATED and Compose in the island window stops frames:
+     * no animations, no redraws, no wake-ups for them. When shown, it is RESUMED again, and everything that changed
+     * is drawn in one frame.
      */
     fun setActive(on: Boolean) {
         val state = registry.currentState

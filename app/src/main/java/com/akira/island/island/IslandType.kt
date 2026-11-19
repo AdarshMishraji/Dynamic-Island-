@@ -30,14 +30,14 @@ import com.akira.island.ui.Inter
 import java.io.File
 
 /**
- * Шрифт и толщина текста острова из «Оформления → Шрифт»: Inter (по умолчанию), шрифт системы или свой файл.
- * Значения — состояние Compose: сменили шрифт в настройках — остров перерисовывается сам.
+ * Font and weight of the island text from "Appearance > Font": Inter (default), system font or your own file.
+ * The values are Compose state: change the font in settings and the island redraws by itself.
  */
 object IslandType {
     var family: FontFamily by mutableStateOf(Inter)
         private set
 
-    /** На сколько ступеней (по 100) толще или тоньше весь текст острова */
+    /** By how many steps (of 100) all island text is bolder or lighter */
     var shift: Int by mutableIntStateOf(0)
         private set
 
@@ -46,14 +46,14 @@ object IslandType {
 
     private var key: String? = null
 
-    /** Применить настройки. Зовут служба острова и экран настроек при каждой их смене — повтор ничего не делает. */
+    /** Apply settings. Called by the island service and the settings screen on every change; a repeat does nothing. */
     fun apply(context: Context, s: IslandSettings) {
         val k = "${s.islandFont}|${s.customFontFile}"
         if (k != key) {
             key = k
             family = when (s.islandFont) {
                 IslandFont.INTER -> Inter
-                // Шрифт системы — тот, что выбран в настройках телефона (у многих оболочек — свой)
+                // System font is the one chosen in the phone settings (many skins have their own)
                 IslandFont.SYSTEM -> FontFamily.Default
                 IslandFont.CUSTOM -> customFamily(context, s.customFontFile) ?: Inter
             }
@@ -62,10 +62,10 @@ object IslandType {
         actionAccent = if (s.actionColorEnabled) Color(s.actionColor) else null
     }
 
-    /** Папка своих шрифтов: в личной папке приложения, выбранный файл после копирования не нужен. */
+    /** Folder for your own fonts: in the app's private folder, the chosen file is not needed after copying. */
     fun fontsDir(context: Context) = File(context.filesDir, "fonts")
 
-    /** Читается ли файл как шрифт: проверяем при выборе, чтобы не сломать остров. */
+    /** Whether the file can be read as a font: checked on selection so the island does not break. */
     fun isFont(file: File): Boolean = runCatching { Typeface.createFromFile(file) != null }.getOrDefault(false)
 
     private fun customFamily(context: Context, name: String): FontFamily? {
@@ -76,7 +76,7 @@ object IslandType {
     }
 }
 
-/** Толщина с поправкой из настроек: «Жирнее» делает обычный текст средним, средний — полужирным и т. д. */
+/** Weight with the setting's adjustment: "Bolder" turns regular text into medium, medium into semibold, and so on. */
 val FontWeight.island: FontWeight
     get() {
         val shift = IslandType.shift
@@ -86,7 +86,7 @@ val FontWeight.island: FontWeight
 private fun TextStyle.islandText(family: FontFamily): TextStyle =
     copy(fontFamily = family, fontWeight = (fontWeight ?: FontWeight.Normal).island)
 
-/** Стили Material 3 для острова: выбранный шрифт и толщина. */
+/** Material 3 styles for the island: the chosen font and weight. */
 private fun islandTypography(family: FontFamily): Typography = Typography().let { t ->
     t.copy(
         displayLarge = t.displayLarge.islandText(family),
@@ -107,7 +107,7 @@ private fun islandTypography(family: FontFamily): Typography = Typography().let 
     )
 }
 
-/** Тема острова: тёмная, с его шрифтом. Ей обёрнуты окно острова и пример острова в настройках. */
+/** Island theme: dark, with its font. The island window and the sample island in settings are wrapped in it. */
 @Composable
 fun IslandTheme(content: @Composable () -> Unit) {
     val family = IslandType.family
@@ -117,8 +117,8 @@ fun IslandTheme(content: @Composable () -> Unit) {
 }
 
 /**
- * Размер текста и значков из «Оформления» ([percent], 100 — как задумано). Меняется плотность, а не места:
- * ширина, которую дали снаружи, остаётся той же, внутри всё рисуется крупнее или мельче.
+ * Text and icon size from "Appearance" ([percent], 100 is as designed). The density changes, not the space:
+ * the width given from outside stays the same, and inside everything is drawn larger or smaller.
  */
 @Composable
 fun Scaled(percent: Int, content: @Composable () -> Unit) {
@@ -132,9 +132,9 @@ fun Scaled(percent: Int, content: @Composable () -> Unit) {
 }
 
 /**
- * Остров «У камеры» в альбомной ориентации: всё внутри раскладывается как в портрете (ширина — вдоль края
- * с камерой) и поворачивается на [degrees] (−90 — камера слева, 90 — справа). Касания и границы для окна
- * касаний Compose пересчитывает с поворотом сам.
+ * "At the camera" island in landscape: everything inside is laid out as in portrait (width along the edge
+ * with the camera) and rotated by [degrees] (-90 is camera on the left, 90 on the right). Compose recalculates touches and bounds for the touch
+ * window with the rotation by itself.
  */
 @Composable
 fun Rotated(degrees: Int, content: @Composable () -> Unit) {
@@ -143,7 +143,7 @@ fun Rotated(degrees: Int, content: @Composable () -> Unit) {
         return
     }
     val conf = LocalConfiguration.current
-    // Ширина экрана для острова — как в портрете: раскрытый остров и уведомления не растягиваются на всю альбомную ширину
+    // Screen width for the island is as in portrait: the expanded island and notifications do not stretch to the full landscape width
     val portrait = remember(conf) {
         Configuration(conf).apply {
             val w = screenWidthDp
@@ -154,7 +154,7 @@ fun Rotated(degrees: Int, content: @Composable () -> Unit) {
     }
     CompositionLocalProvider(LocalConfiguration provides portrait) {
         Layout(content) { measurables, constraints ->
-            // Вдоль края с камерой — ширина «портретного» острова, от края внутрь — высота его окна
+            // Along the camera edge it is the width of the "portrait" island, from the edge inward it is the height of its window
             val along = constraints.maxHeight
             val inward = constraints.maxWidth
             val placeables = measurables.map { it.measure(Constraints.fixed(along, inward)) }

@@ -18,9 +18,9 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
-    // Ключ подписи в репозитории не хранится: релизный APK собирается без подписи,
-    // а подписывает его CI ключом из секретов GitHub (см. .github/workflows/android.yml).
-    // Отладочная сборка подписывается обычным отладочным ключом Android Studio.
+    // The signing key isn't stored in the repository: the release APK is built unsigned,
+    // and CI signs it with a key from GitHub secrets (see .github/workflows/android.yml).
+    // The debug build is signed with the standard Android Studio debug key.
     buildTypes {
         release {
             isMinifyEnabled = true

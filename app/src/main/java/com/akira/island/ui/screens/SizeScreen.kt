@@ -51,9 +51,9 @@ import com.akira.island.ui.Tile
 import com.akira.island.ui.Ui
 
 /**
- * Положение и размер острова: сдвиг по горизонтали, отступ сверху, ширина и высота пустой капсулы.
- * Пока экран открыт, остров на телефоне красный с белым ободком — так видно, где он стоит
- * относительно камеры. «Сохранить» оставляет новые значения, «назад» возвращает прежние.
+ * Island position and size: horizontal shift, top margin, width and height of the empty capsule.
+ * While this screen is open, the island on the phone is red with a white rim, so you can see where it sits
+ * relative to the camera. "Save" keeps the new values, "back" restores the previous ones.
  */
 @Composable
 fun SizeScreen(onBack: () -> Unit) {
@@ -92,7 +92,7 @@ fun SizeScreen(onBack: () -> Unit) {
             },
         ) {
             Group {
-                // Камера слева или справа — сдвиньте капсулу к ней; широкие плашки всё равно остаются на экране
+                // Camera on the left or right: shift the capsule toward it; wide banners still stay on screen
                 GroupStepSlider(
                     Pos.First, Icons.Rounded.SwapHoriz, tr("По горизонтали", "Horizontal"), s.offsetX, -200..200,
                     action = tr("Центр", "Center") to { set { copy(offsetX = 0) } }, color = Tile.Blue,
@@ -143,7 +143,7 @@ fun SizeScreen(onBack: () -> Unit) {
     }
 }
 
-/** Всё, что настраивается на этом экране, — из [from]: для «назад» и «Сбросить». */
+/** Everything configurable on this screen comes from [from]: for "back" and "Reset". */
 private fun IslandSettings.withPlacement(from: IslandSettings) =
     copy(offsetX = from.offsetX, offsetY = from.offsetY, notchOffsetY = from.notchOffsetY,
         width = from.width, height = from.height, notch = from.notch)

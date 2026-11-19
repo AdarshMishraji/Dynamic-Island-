@@ -38,7 +38,7 @@ import com.akira.island.security.copyBoundedTo
 import com.akira.island.security.readUtf8Bounded
 import com.akira.island.security.openTrustedHttps
 
-/** Новая версия на GitHub: номер, что изменилось и откуда скачать APK. */
+/** New version on GitHub: number, what changed and where to download the APK. */
 data class Release(
     val version: String,
     val notes: String,
@@ -63,9 +63,9 @@ sealed interface DownloadState {
 }
 
 /**
- * Обновление из приложения: смотрит последний релиз на GitHub, при новой версии показывает кнопку
- * «Обновить», скачивает APK и открывает системную установку. Подпись у всех сборок одна,
- * поэтому APK ставится поверх.
+ * In-app update: checks the latest GitHub release, shows an "Update" button when there is a new version,
+ * downloads the APK and opens the system installer. All builds have the same signature,
+ * so the APK installs over the existing one.
  */
 object UpdateChecker {
     const val REPO = "Arusaky/Dynamic-Island-"
@@ -74,7 +74,7 @@ object UpdateChecker {
     val state = MutableStateFlow<UpdateState>(UpdateState.Idle)
     val download = MutableStateFlow<DownloadState>(DownloadState.Idle)
 
-    /** О какой версии остров уже сообщил плашкой — чтобы не повторять каждые 3 часа */
+    /** Which version the island already announced with a banner, so it doesn't repeat every 3 hours */
     private var announced: String? = null
     private var installation: Job? = null
 
@@ -83,10 +83,10 @@ object UpdateChecker {
     }.getOrNull() ?: "0"
 
     /**
-     * [force] — проверка по кнопке: показывает «последняя версия» и ошибки связи.
-     * Фоновая раз в 3 часа молчит, если сети нет или версия, от которой отказались, не изменилась.
-     * [announce] — проверка из службы острова: о новой версии сообщает плашка на острове
-     * (нажатие открывает приложение с кнопкой «Обновить»).
+     * [force] is a check from the button: shows "latest version" and connection errors.
+     * The background check every 3 hours stays silent if there is no network or the dismissed version hasn't changed.
+     * [announce] is a check from the island service: a new version is announced by a banner on the island
+     * (tapping opens the app with the "Update" button).
      */
     suspend fun check(context: Context, force: Boolean, announce: Boolean = false) {
         val s = SettingsRepo.current
@@ -100,7 +100,7 @@ object UpdateChecker {
             state.value = UpdateState.Idle
             throw cancel
         } catch (error: Exception) { Result.failure(error) }
-        // Без связи проверка не считается: повторим при следующей возможности, а не через 3 часа
+        // A check without a connection doesn't count: we retry at the next opportunity, not after 3 hours
         if (result.isSuccess) SettingsRepo.update { copy(lastUpdateCheck = now) }
         val release = result.getOrNull()
         state.value = when {
@@ -113,7 +113,7 @@ object UpdateChecker {
             else -> UpdateState.Available(release)
         }
         val available = (state.value as? UpdateState.Available)?.release
-        // Ошибка прошлой попытки к новой проверке не относится — карточка снова предлагает «Обновить»
+        // The previous attempt's error doesn't apply to a new check; the card offers "Update" again
         if (available != null && download.value is DownloadState.Failed) download.value = DownloadState.Idle
         if (announce && available != null && available.version != announced) {
             announced = available.version
@@ -133,10 +133,10 @@ object UpdateChecker {
         }
     }
 
-    /** Пример из «Проверки»: ничего не скачивается, проценты бегут сами, потом «Обновлено». */
+    /** Example from "Test": nothing is downloaded, the percent counts up by itself, then "Updated". */
     const val DEMO_APK = "demo://update"
 
-    /** Карточка «Обновлено до …» в острове — после установки и в примере. */
+    /** The "Updated to ..." card in the island, after installation and in the example. */
     fun updatedNotice(context: Context, version: String) = Notice(
         title = trf("Обновлено до {0}", "Updated to {0}", version),
         icon = Ios.load(context, R.drawable.ios_check),
@@ -148,7 +148,7 @@ object UpdateChecker {
         extraMs = 2_000,
     )
 
-    /** «Проверка» → «Обновление»: та же карточка, что придёт с новой версией, только понарошку. */
+    /** "Test" → "Update": the same card that comes with a new version, just pretend. */
     fun showDemo(context: Context) {
         download.value = DownloadState.Idle
         IslandBus.post(
@@ -166,24 +166,24 @@ object UpdateChecker {
         )
     }
 
-    /** Имя скачанного APK: по версии, без лишних символов из тега. */
+    /** Name of the downloaded APK: by version, without extra characters from the tag. */
     private fun apkName(version: String) = "DynamicIsland-${version.filter { it.isLetterOrDigit() || it == '.' }}.apk"
 
     /**
-     * Скачанный APK именно этой версии, если он ещё лежит в кэше: тогда «Установить» ставит его без новой
-     * загрузки. Файл другой версии или стёртый системой не подходит — нужно скачать заново.
+     * The downloaded APK of exactly this version, if it is still in the cache: then "Install" installs it without a new
+     * download. A file of another version or one wiped by the system doesn't fit; it must be downloaded again.
      */
     fun readyFile(release: Release, state: DownloadState): File? =
         (state as? DownloadState.Ready)?.file?.takeIf { it.name == apkName(release.version) && it.exists() }
 
-    /** «Позже»: про эту версию больше не напоминаем, пока не выйдет следующая. */
+    /** "Later": no more reminders about this version until the next one comes out. */
     fun skip(version: String) {
         SettingsRepo.update { copy(skippedVersion = version) }
         state.value = UpdateState.Idle
         download.value = DownloadState.Idle
     }
 
-    /** Скачивает APK в кэш приложения и сразу открывает установку. */
+    /** Downloads the APK to the app cache and opens the installer right away. */
     suspend fun downloadAndInstall(context: Context, release: Release) {
         val url = release.apkUrl
         if (url == DEMO_APK) {
@@ -260,8 +260,8 @@ object UpdateChecker {
     }
 
     /**
-     * Открывает системную установку. Если приложению ещё не разрешена установка из неизвестных
-     * источников, сначала открываются нужные настройки — после разрешения нажмите «Установить» снова.
+     * Opens the system installer. If the app isn't yet allowed to install from unknown
+     * sources, the relevant settings open first; after allowing, tap "Install" again.
      */
     fun install(context: Context, file: File, release: Release) {
         if (installation?.isActive == true) return
@@ -296,7 +296,7 @@ object UpdateChecker {
         val conn = openTrustedHttps("https://api.github.com/repos/$REPO/releases/latest", 10_000, 15_000,
             mapOf("Accept" to "application/vnd.github+json", "User-Agent" to "DynamicIsland-Android"))
         try {
-            // Релизов ещё нет
+            // No releases yet
             if (conn.responseCode == 404) return null
             if (conn.responseCode !in 200..299) error("HTTP ${conn.responseCode}")
             return parseRelease(conn.inputStream.use { it.readUtf8Bounded(1_000_000) })
@@ -305,7 +305,7 @@ object UpdateChecker {
         }
     }
 
-    /** Разбор ответа GitHub API `releases/latest`. */
+    /** Parsing the GitHub API `releases/latest` response. */
     internal fun parseRelease(json: String): Release? {
         val o = Json.parseToJsonElement(json).jsonObject
         val tag = o["tag_name"]?.jsonPrimitive?.contentOrNull ?: return null
@@ -324,7 +324,7 @@ object UpdateChecker {
         )
     }
 
-    /** 1.10.0 новее 1.9.2: сравниваем по числам, а не по строкам. */
+    /** 1.10.0 is newer than 1.9.2: compare by numbers, not by strings. */
     internal fun isNewer(remote: String, local: String): Boolean {
         fun parts(v: String) = v.takeWhile { it.isDigit() || it == '.' }.split('.').map { it.toIntOrNull() ?: 0 }
         val r = parts(remote)
@@ -339,8 +339,8 @@ object UpdateChecker {
 }
 
 /**
- * Описание релиза на двух языках («## 🇬🇧 English» и «## 🇷🇺 Русский») — строки на языке приложения.
- * Если нужного раздела нет, описание целиком.
+ * Release description in two languages ("## 🇬🇧 English" and "## 🇷🇺 Русский"): lines in the app's language.
+ * If the needed section is missing, the whole description.
  */
 fun localNotes(markdown: String): List<String> {
     val all = markdown.lines()

@@ -34,9 +34,9 @@ import com.akira.island.ui.Ui
 import com.akira.island.ui.posOf
 
 /**
- * «Приложения» в уведомлениях: для каждого приложения, от которого приходили уведомления, — как в системе,
- * всегда (и тихие) или никогда. Список приложений телефона Android без особого разрешения не даёт,
- * поэтому здесь те, кто уже писал.
+ * "Apps" in notifications: for each app that has sent notifications, as in the system,
+ * always (and silent) or never. Android doesn't give the list of phone apps without a special permission,
+ * so here are the ones that have already posted.
  */
 @Composable
 fun NotifAppsScreen(onBack: () -> Unit) {

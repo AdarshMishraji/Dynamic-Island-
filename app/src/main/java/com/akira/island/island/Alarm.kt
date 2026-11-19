@@ -65,24 +65,24 @@ import kotlin.math.cos
 import kotlin.math.roundToLong
 import kotlin.math.sin
 
-/** Будильник оранжевый, как на iPhone; ночь — индиго, как в «Режиме сна» */
+/** The alarm is orange, like on iPhone; night is indigo, like in "Sleep mode" */
 val AlarmTint = Tints.Orange
 private val NightTint = Color(0xFF7D7AFF)
 private val Dim = Color.White.copy(alpha = 0.55f)
 private const val DAY = 86_400_000L
 
-/** За сколько до будильника он появляется в острове. */
+/** How long before the alarm it appears in the island. */
 const val ALARM_LEAD_MS = 12 * 3_600_000L
 
-/** Утренний будильник (с 3 до 12) — это подъём: тогда остров говорит «сон», а не «через». */
+/** A morning alarm (3 to 12) means wake-up: then the island says "sleep", not "in". */
 fun isWakeUp(triggerAt: Long): Boolean =
     Calendar.getInstance().apply { timeInMillis = triggerAt }.get(Calendar.HOUR_OF_DAY) in 3..11
 
 fun wakeTime(context: Context, triggerAt: Long): String = DateFormat.getTimeFormat(context).format(Date(triggerAt))
 
 /**
- * Цифры крупно, а «AM»/«PM» вдвое мельче, как на iPhone: в 12-часовом формате «11:45 PM» не распирает
- * капсулу и не лезет к камере. В 24-часовом формате текст не меняется.
+ * Digits are large and "AM"/"PM" is half the size, like on iPhone: in 12-hour format "11:45 PM" does not stretch
+ * the capsule or crowd the camera. In 24-hour format the text is unchanged.
  */
 fun clockText(time: String, size: TextUnit): AnnotatedString {
     val digits = Regex("""\d{1,2}[:.]\d{2}""").find(time) ?: return AnnotatedString(time)
@@ -97,7 +97,7 @@ fun clockText(time: String, size: TextUnit): AnnotatedString {
     }
 }
 
-/** «8 ч 15 мин», «45 мин», «меньше минуты» — как пишет Android, когда ставишь будильник. */
+/** "8 h 15 min", "45 min", "less than a minute": as Android writes it when you set an alarm. */
 fun durationWords(ms: Long): String {
     if (ms < 60_000) return tr("меньше минуты", "less than a minute")
     val minutes = (ms + 59_999) / 60_000
@@ -110,14 +110,14 @@ fun durationWords(ms: Long): String {
     }
 }
 
-/** «сегодня», «завтра» или день недели. */
+/** "today", "tomorrow" or a weekday. */
 fun alarmDay(triggerAt: Long, now: Long): String {
     val days = ((midnight(triggerAt) - midnight(now)) / DAY.toDouble()).roundToLong()
     return when (days) {
         0L -> tr("сегодня", "today")
         1L -> tr("завтра", "tomorrow")
-        // По-русски, по-казахски и по-португальски день недели строчными («пятница», «sexta-feira»),
-        // по-английски и по-индонезийски — с большой («Friday», «Jumat»)
+        // In Russian, Kazakh and Portuguese the weekday is lowercase ("пятница", "sexta-feira"),
+        // in English and Indonesian it is capitalized ("Friday", "Jumat")
         else -> SimpleDateFormat("EEEE", Lang.locale).format(Date(triggerAt)).let {
             if (Lang.code in setOf("ru", "kk", "pt")) it.lowercase(Lang.locale) else it
         }
@@ -132,14 +132,14 @@ private fun midnight(t: Long): Long = Calendar.getInstance().apply {
     set(Calendar.MILLISECOND, 0)
 }.timeInMillis
 
-/** Угол времени суток на 24-часовом циферблате: полночь сверху, полдень снизу. */
+/** Angle of the time of day on the 24-hour dial: midnight at the top, noon at the bottom. */
 private fun dayAngle(t: Long): Float {
     val c = Calendar.getInstance().apply { timeInMillis = t }
     val minutes = c.get(Calendar.HOUR_OF_DAY) * 60 + c.get(Calendar.MINUTE) + c.get(Calendar.SECOND) / 60f
     return minutes / 1440f * 360f - 90f
 }
 
-/** Открыть будильники: экран, который дало приложение «Часы», иначе само приложение. */
+/** Open alarms: the screen provided by the Clock app, otherwise the app itself. */
 fun openAlarm(context: Context, a: AlarmInfo) {
     if (Controls.send(context, a.show)) {
         Controls.collapse()
@@ -149,9 +149,9 @@ fun openAlarm(context: Context, a: AlarmInfo) {
 }
 
 /**
- * Циферблат сна, как в «Режиме сна» iPhone: 24 часа по кругу, дуга от «сейчас» до будильника
- * переливается из ночного индиго в утренний оранжевый, на концах — луна и будильник.
- * [compact] — маленький вариант для плашки: без рисок и подписи в середине.
+ * Sleep dial, like iPhone "Sleep mode": 24 hours around the circle, the arc from "now" to the alarm
+ * blends from night indigo to morning orange, with a moon and an alarm at the ends.
+ * [compact] is a small variant for the banner: no ticks and no label in the middle.
  */
 @Composable
 fun SleepDial(now: Long, triggerAt: Long, modifier: Modifier = Modifier, compact: Boolean = false, animate: Boolean = true) {
@@ -161,7 +161,7 @@ fun SleepDial(now: Long, triggerAt: Long, modifier: Modifier = Modifier, compact
     LaunchedEffect(target) {
         if (animate) sweep.animateTo(target, spring(dampingRatio = 0.85f, stiffness = 90f)) else sweep.snapTo(target)
     }
-    // В капсуле циферблат висит часами — там свечение ровное, чтобы не перерисовывать остров каждый кадр
+    // In the capsule the dial stays up for hours, so the glow is steady to avoid redrawing the island every frame
     val transition = rememberInfiniteTransition(label = "dial")
     val glow = if (animate && !compact) {
         transition.animateFloat(0.25f, 0.75f, infiniteRepeatable(tween(1500), RepeatMode.Reverse), label = "glow")
@@ -179,7 +179,7 @@ fun SleepDial(now: Long, triggerAt: Long, modifier: Modifier = Modifier, compact
             val c = center
             drawCircle(Color.White.copy(alpha = 0.1f), radius = r, style = Stroke(stroke))
             if (!compact) {
-                // 24 риски внутри кольца; полночь, 6, 12 и 18 — длиннее и ярче
+                // 24 ticks inside the ring; midnight, 6, 12 and 18 are longer and brighter
                 for (i in 0 until 24) {
                     val a = Math.toRadians(i * 15.0 - 90.0)
                     val major = i % 6 == 0
@@ -207,7 +207,7 @@ fun SleepDial(now: Long, triggerAt: Long, modifier: Modifier = Modifier, compact
             }
             val startPos = pointAt(c, r, start)
             val endPos = pointAt(c, r, start + s)
-            // Мягкое свечение вокруг будильника
+            // Soft glow around the alarm
             drawCircle(AlarmTint.copy(alpha = (glow?.value ?: 0.5f) * 0.4f), radius = stroke * 1.2f, center = endPos)
             val knob = stroke * 0.62f
             handle(startPos, NightTint, if (compact) null else moon, knob)
@@ -241,7 +241,7 @@ private fun DrawScope.handle(at: Offset, color: Color, icon: Painter?, radius: F
     }
 }
 
-/** Будильник в капсуле: слева луна (перед подъёмом) или будильник, справа — время звонка. */
+/** Alarm in the capsule: moon on the left (before wake-up) or alarm, ring time on the right. */
 @Composable
 fun AlarmCompact(a: AlarmInfo, s: IslandSettings) {
     val context = LocalContext.current
@@ -260,8 +260,8 @@ fun AlarmCompact(a: AlarmInfo, s: IslandSettings) {
 }
 
 /**
- * Раскрытый будильник: слева циферблат сна, справа «Подъём · завтра», крупное время звонка
- * и сколько осталось спать. Нажатие открывает будильники «Часов».
+ * Expanded alarm: sleep dial on the left, "Wake up · tomorrow" on the right, large ring time
+ * and how much sleep is left. Tapping opens the Clock alarms.
  */
 @Composable
 fun AlarmExpanded(a: AlarmInfo, s: IslandSettings) {
@@ -289,8 +289,8 @@ fun AlarmExpanded(a: AlarmInfo, s: IslandSettings) {
 }
 
 /**
- * Плашка, когда поставили будильник: маленький циферблат сна, «Подъём» и время звонка,
- * справа — сколько осталось спать. Как подсказка Android «Будильник сработает через…», только красиво.
+ * Banner shown when an alarm is set: small sleep dial, "Wake up" and the ring time,
+ * how much sleep is left on the right. Like the Android hint "Alarm will go off in...", only nicer.
  */
 @Composable
 fun AlarmBanner(n: Notice, a: AlarmInfo, s: IslandSettings, wideWidth: Dp) {

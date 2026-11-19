@@ -91,7 +91,7 @@ class TorchController(context: Context) {
         if (!wasOn) showCard()
     }
 
-    /** Как на iPhone: включили фонарик — остров раскрывается в карточку с лучом и через пару секунд сворачивается. */
+    /** Like on iPhone: turn on the flashlight and the island expands into a card with a beam, then collapses after a couple of seconds. */
     private fun showCard() {
         val s = SettingsRepo.current
         if (!s.cardTorch || !s.enabled || IslandBus.expanded.value) return
@@ -100,7 +100,7 @@ class TorchController(context: Context) {
         IslandBus.lastTouch = opened
         collapseJob?.cancel()
         collapseJob = scope.launch {
-            // Пока пальцем крутят яркость — не сворачиваем
+            // While a finger is adjusting the brightness, we don't collapse
             while (SystemClock.elapsedRealtime() - IslandBus.lastTouch < CARD_MS) {
                 delay(CARD_MS - (SystemClock.elapsedRealtime() - IslandBus.lastTouch))
             }

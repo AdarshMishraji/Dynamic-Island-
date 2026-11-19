@@ -101,8 +101,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import com.akira.island.data.QuickAction
 
 /**
- * «Функции»: что остров показывает и как с ним обращаться. Внешний вид — во вкладке «Оформление»,
- * версия, помощь и ссылки — в «О приложении».
+ * "Features": what the island shows and how to interact with it. Appearance is in the "Appearance" tab,
+ * version, help and links are in "About".
  */
 @Composable
 fun FeaturesScreen(open: (Screen) -> Unit) {
@@ -166,7 +166,7 @@ fun FeaturesScreen(open: (Screen) -> Unit) {
 
         SectionHeader(tr("Общие", "General"))
         Group {
-            // Значок глобуса и «Language» рядом — язык найдётся, даже если сейчас он непонятен
+            // A globe icon and "Language" next to it, so the language can be found even if it is currently unreadable
             GroupItem(Pos.First, Icons.Rounded.Language, languageTitle(), s.language.title,
                 color = Tile.Blue, onClick = { languageDialog = true }) { Arrow() }
             GroupItem(Pos.Middle, Icons.Rounded.SaveAlt, tr("Сохранить настройки в файл", "Save settings to a file"),
@@ -206,7 +206,7 @@ fun FeaturesScreen(open: (Screen) -> Unit) {
     }
 }
 
-/** «Поведение»: когда остров виден, как сворачивается и чем отзывается. */
+/** "Behavior": when the island is visible, how it collapses, and how it responds. */
 @Composable
 fun BehaviorScreen(onBack: () -> Unit) {
     val s by SettingsRepo.state.collectAsState()
@@ -234,7 +234,7 @@ fun BehaviorScreen(onBack: () -> Unit) {
                 emptyLabel(s.emptyCapsule), color = Tile.Blue, onClick = { previewScene = PreviewScene.IDLE; emptyDialog = true })
             if (!s.hideIdle) GroupItem(Pos.Middle, Icons.Rounded.Timelapse, tr("Автоскрытие пустого острова", "Auto-hide the idle island"),
                 idleHideLabel(s.idleHideSec), color = Tile.Indigo, onClick = { idleHideDialog = true })
-            // В играх и видео: спрятать, оставить над камерой (как на iPhone) или посередине сверху
+            // In games and videos: hide, keep above the camera (as on iPhone) or at the top center
             GroupItem(Pos.Middle, Icons.Rounded.ScreenRotation, tr("В альбомной ориентации", "In landscape"),
                 "${s.landscape.title} — ${s.landscape.hint}", color = Tile.Gray, onClick = { landscapeDialog = true })
             GroupItem(Pos.Middle, Icons.Rounded.ScreenLockPortrait, tr("На экране блокировки", "On the lock screen"),
@@ -288,7 +288,7 @@ fun BehaviorScreen(onBack: () -> Unit) {
 
         }
 
-        // Например, только днём: с 10:00 до 23:00; можно и через полночь — с 22:00 до 7:00
+        // For example, daytime only: 10:00 to 23:00; it can also cross midnight, 22:00 to 7:00
         SectionHeader(tr("Расписание", "Schedule"))
         Group {
             GroupToggle(if (s.scheduleOn) Pos.First else Pos.Single, Icons.Rounded.Schedule, tr("По расписанию", "On a schedule"),
@@ -326,7 +326,7 @@ fun BehaviorScreen(onBack: () -> Unit) {
             }
         }
 
-        // Нажатие на пустой остров: лишние кнопки убираются, а можно не раскрывать его вовсе
+        // Tapping the empty island: extra buttons are removed, or it can be left unexpanded entirely
         SectionHeader(tr("Пустой остров по нажатию", "Tapping the empty island"))
         Group {
             GroupToggle(if (s.idleExpand) Pos.First else Pos.Single, Icons.Rounded.UnfoldMore, tr("Раскрывать", "Expand"),
@@ -337,7 +337,7 @@ fun BehaviorScreen(onBack: () -> Unit) {
                 QuickAction.entries.forEachIndexed { i, a ->
                     GroupToggle(if (i == QuickAction.entries.lastIndex) Pos.Last else Pos.Middle, a.settingsIcon, a.title,
                         a.hint, a in s.quickActions, color = Tile.Orange) { v ->
-                        // Порядок кнопок — как в списке, что бы ни включали первым
+                        // Button order follows the list, whichever is turned on first
                         SettingsRepo.update { copy(quickActions = QuickAction.entries.filter { if (it == a) v else it in quickActions }) }
                     }
                 }
@@ -383,7 +383,7 @@ fun BehaviorScreen(onBack: () -> Unit) {
 private fun idleHideLabel(seconds: Int): String = if (seconds <= 0) tr("Не скрывать по таймеру", "No timed hiding")
 else trf("Через {0} с; нажатие у камеры возвращает остров", "After {0} s; tap at the camera to restore", seconds)
 
-/** «Язык» на текущем языке и рядом по-английски — язык найдётся, даже если сейчас он непонятен. */
+/** "Language" in the current language and next to it in English, so the language can be found even if it is currently unreadable. */
 private fun languageTitle(): String = when (Lang.code) {
     "en" -> "Language"
     "ru" -> "Язык · Language"
@@ -395,10 +395,10 @@ private fun languageTitle(): String = when (Lang.code) {
     else -> "Language"
 }
 
-/** Час расписания: «10:00». */
+/** Schedule hour: "10:00". */
 private fun hourLabel(h: Int) = "%d:00".format(h)
 
-/** Подпись для «Сворачивать раскрытый остров». */
+/** Label for "Collapse expanded island". */
 private fun collapseLabel(sec: Int) = if (sec <= 0) tr("Только касанием мимо или свайпом вверх", "Only by tapping outside or swiping up")
     else trf("Через {0} секунд без касаний", "After {0} seconds without a touch", sec)
 
@@ -407,7 +407,7 @@ private val accentColors = listOf(
     0xFFFF453A, 0xFFFF2D92, 0xFFBF5AF2, 0xFFFFFFFF,
 )
 
-/** «Уведомления»: сообщения приложений в острове — что показывать, сколько текста и каким цветом кнопки. */
+/** "Notifications": app messages in the island: what to show, how much text, and what button color. */
 @Composable
 fun NotificationsScreen(onBack: () -> Unit, open: (Screen) -> Unit) {
     val s by SettingsRepo.state.collectAsState()
@@ -522,14 +522,14 @@ fun NotificationsScreen(onBack: () -> Unit, open: (Screen) -> Unit) {
     }
 }
 
-/** «Сколько показывать» уведомление: как события, секунды или пока не смахнёте. */
+/** "How long to show" a notification: as events, seconds, or until you swipe it away. */
 private fun messageTimeLabel(sec: Int) = when {
     sec == 0 -> tr("Как события, с запасом на чтение", "Like events, with extra time to read")
     sec < 0 -> tr("Пока не смахнёте", "Until you swipe it away")
     else -> trf("{0} секунд", "{0} seconds", sec)
 }
 
-/** «История уведомлений»: выключена, минуты или пока не прочитаете. */
+/** "Notification history": off, minutes, or until you read it. */
 private fun historyLabel(min: Int) = when {
     min == 0 -> tr("Выключена — уведомление уходит вместе с плашкой", "Off — a notification leaves with its banner")
     min < 0 -> tr("Ждут в острове, пока не прочитаете", "They wait in the island until you read them")
@@ -537,7 +537,7 @@ private fun historyLabel(min: Int) = when {
     else -> trf("Ждут в острове {0} минут", "They wait in the island for {0} minutes", min)
 }
 
-/** Как выглядят «Ответить», «Пометить прочитанным» и кнопка отправки с выбранным цветом. */
+/** What "Reply", "Mark as read" and the send button look like with the chosen color. */
 private val QuickAction.settingsIcon: ImageVector
     get() = when (this) {
         QuickAction.TIMER -> Icons.Rounded.HourglassBottom
@@ -560,7 +560,7 @@ private val QuickAction.settingsIcon: ImageVector
         QuickAction.QUICK_SETTINGS -> Icons.Rounded.Tune
     }
 
-/** Подпись к кнопке — только там, где непонятно по названию */
+/** Button label only where the name alone isn't clear */
 private val QuickAction.hint: String?
     get() = when (this) {
         QuickAction.SCREENSHOT -> tr("Остров на миг прячется — на снимке его нет (Android 9+)",

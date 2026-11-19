@@ -43,7 +43,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-/** Следит за системными медиасессиями (любой плеер) и выбирает ту, что играет. */
+/** Watches system media sessions (any player) and picks the one that is playing. */
 class MediaMonitor(private val context: Context) {
     private val manager = context.getSystemService(MediaSessionManager::class.java)
     private val component = ComponentName(context, NotifListener::class.java)
@@ -56,7 +56,7 @@ class MediaMonitor(private val context: Context) {
     private val notificationSessions = LinkedHashMap<String, MediaController>()
     private var lyricsRequest: String? = null
     private var lyricsRetriedRequest: String? = null
-    /** Отпечаток последней обложки (см. [artPrint]); null — обложки нет */
+    /** Fingerprint of the last cover art (see [artPrint]); null means no cover art */
     private var lastArt: Long? = null
     private var artJob: Job? = null
     private var lyricsJob: Job? = null
@@ -76,7 +76,7 @@ class MediaMonitor(private val context: Context) {
             manager?.addOnActiveSessionsChangedListener(sessionsListener, component, handler)
             bind(manager?.getActiveSessions(component).orEmpty())
         } catch (_: SecurityException) {
-            // Доступ к уведомлениям ещё не выдан
+            // Notification access has not been granted yet
         }
         // Notification listeners can reconnect after OEM battery restrictions; refresh on wake too.
         scope.launch {
@@ -88,7 +88,7 @@ class MediaMonitor(private val context: Context) {
                 }
             }
         }
-        // Включили текст песен в настройках — подгрузим для текущего трека
+        // Lyrics were turned on in settings: load them for the current track
         scope.launch {
             SettingsRepo.state.map { it.lyricsEnabled }.distinctUntilChanged().collect { enabled ->
                 val m = IslandBus.media.value
@@ -228,7 +228,7 @@ class MediaMonitor(private val context: Context) {
             dislike = dislike,
         )
 
-        // На паузе карточка держится ещё немного и уходит, как на iPhone
+        // On pause the card stays a little longer and then goes away, as on iPhone
         if (playing) {
             hideJob?.cancel()
             hiddenKey = null
@@ -259,18 +259,18 @@ class MediaMonitor(private val context: Context) {
                 ?: meta.getBitmap(MediaMetadata.METADATA_KEY_ART)
                 ?: meta.getBitmap(MediaMetadata.METADATA_KEY_DISPLAY_ICON)
         }.getOrNull()
-        // Плеер при каждой паузе и перемотке отдаёт обложку новым объектом, хотя картинка та же, — её не пересчитываем.
-        // Сравниваем не по размеру, а по самой картинке: обложки треков обычно одного размера, а при смене трека
-        // плеер часто сперва присылает новое название со старой обложкой и только следом — новую обложку
+        // On every pause and seek the player hands over the cover art as a new object, though the image is the same, so we do not recompute it.
+        // Compare not by size but by the image itself: track covers are usually the same size, and when the track changes
+        // the player often first sends the new title with the old cover and only then the new cover
         val print = art?.let(::artPrint)
         if (!sameTrack || print != lastArt) loadArt(key, art, print)
-        // Текст ищем один раз на трек, а не после каждого скрытия карточки на паузе
+        // Look up the lyrics once per track, not after every time the card hides on pause
         if (key != lyricsKey) loadLyrics(info)
     }
 
     /**
-     * «Нравится» или «Не нравится» среди своих кнопок плеера: Яндекс Музыка, YouTube Music, Spotify кладут их
-     * в медиасессию рядом с паузой. Уже лайкнутый трек плеер подписывает «Убрать…», «Remove…», «Unlike».
+     * "Like" or "Dislike" among the player's own buttons: Yandex Music, YouTube Music, Spotify put them
+     * in the media session next to pause. A track already liked is labeled by the player "Убрать…", "Remove…", "Unlike".
      */
     private fun rates(state: PlaybackState?): Pair<PlayerAction?, PlayerAction?> {
         var like: PlayerAction? = null
@@ -351,7 +351,7 @@ class MediaMonitor(private val context: Context) {
         }
         IslandBus.lyricsStatus.value = m.key to LyricsStatus.LOADING
         lyricsJob = scope.launch {
-            // Телефон в кармане — текст никто не увидит: ищем, когда включат экран, и только для текущего трека
+            // The phone is in a pocket and nobody will see the lyrics: search when the screen turns on, and only for the current track
             if (!IslandBus.screenOn.value) IslandBus.screenOn.first { it }
             val found = LyricsRepo.find(m.title, m.artist, m.album, m.durationMs)
             currentCoroutineContext().ensureActive()
@@ -386,8 +386,8 @@ class MediaMonitor(private val context: Context) {
 }
 
 /**
- * Отпечаток картинки: размер и 25 точек сеткой 5×5. Дёшево (не весь битмап) и отличает разные обложки одного размера.
- * Аппаратный битмап неизменяем: его generationId отличает новую картинку без чтения GPU-пикселей.
+ * Image fingerprint: the size and 25 points on a 5×5 grid. Cheap (not the whole bitmap) and tells apart different covers of the same size.
+ * A hardware bitmap is immutable: its generationId tells a new image apart without reading GPU pixels.
  */
 private fun artPrint(b: Bitmap): Long = runCatching {
     var h = b.width * 31L + b.height

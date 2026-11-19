@@ -82,8 +82,8 @@ import com.akira.island.ui.Tile
 import com.akira.island.ui.Ui
 
 /**
- * «Оформление»: где стоит остров и как он выглядит — положение и размер, цвет и стекло, анимации и эффекты.
- * Что остров показывает и как себя ведёт — во вкладке «Функции».
+ * "Appearance": where the island sits and how it looks: position and size, color and glass, animations and effects.
+ * What the island shows and how it behaves is in the "Features" tab.
  */
 @Composable
 fun CapsuleScreen(open: (Screen) -> Unit) {
@@ -124,7 +124,7 @@ fun CapsuleScreen(open: (Screen) -> Unit) {
     }
 }
 
-/** Пункт «Упругость» с выбором — прямо в «Оформлении», рядом с «Раскрытием острова». */
+/** The "Elasticity" item with its choice is right in "Appearance", next to "Island expansion". */
 @Composable
 private fun ElasticityItem(pos: Pos, s: IslandSettings, color: Color) {
     var dialog by remember { mutableStateOf(false) }
@@ -135,7 +135,7 @@ private fun ElasticityItem(pos: Pos, s: IslandSettings, color: Color) {
     }
 }
 
-/** «Размер с активностью»: насколько капсула с навигатором, фонариком или музыкой толще и шире спокойной. */
+/** "Size when active": how much thicker and wider the capsule is with navigation, flashlight or music than when idle. */
 @Composable
 fun LookScreen(onBack: () -> Unit) {
     val s by SettingsRepo.state.collectAsState()
@@ -187,7 +187,7 @@ fun LookScreen(onBack: () -> Unit) {
     }
 }
 
-/** «Раскрытие острова»: как остров раскрывается, насколько пружинит и сколько видно события. */
+/** "Island expansion": how the island expands, how much it springs, and how much of the event is visible. */
 @Composable
 fun AnimScreen(onBack: () -> Unit) {
     val s by SettingsRepo.state.collectAsState()
@@ -231,7 +231,7 @@ fun AnimScreen(onBack: () -> Unit) {
     }
 }
 
-/** Что включено в «Эффектах» — подпись пункта. */
+/** What is enabled in "Effects": the item's label. */
 private fun effectsSummary(s: IslandSettings): String {
     if (s.reduceEffects) return tr("Выключены: включено «Уменьшить эффекты»", "Off: Reduce effects is on")
     val on = listOfNotNull(
@@ -244,7 +244,7 @@ private fun effectsSummary(s: IslandSettings): String {
     return if (on.isEmpty()) tr("Все выключены", "All off") else on.joinToString(", ").replaceFirstChar { it.uppercase() }
 }
 
-/** «Эффекты»: каждый живой эффект острова включается и выключается отдельно. */
+/** "Effects": each live island effect is switched on and off separately. */
 @Composable
 fun EffectsScreen(onBack: () -> Unit) {
     val s by SettingsRepo.state.collectAsState()
@@ -270,7 +270,7 @@ fun EffectsScreen(onBack: () -> Unit) {
                 tr("Полоски у музыки и звонка пляшут. Выключено — стоят ровно, так экономнее",
                     "The music and call bars dance. Off — they stand still, which saves power"),
                 s.fxEqualizer, color = Tile.Pink) { v -> SettingsRepo.update { copy(fxEqualizer = v) } }
-            // Раскрытие и смена содержимого всегда идут с частотой экрана — это только для того, что движется постоянно
+            // Expansion and content changes always run at the screen refresh rate; this is only for things that move constantly
             GroupItem(Pos.Middle, Icons.Rounded.Speed, tr("Частота эквалайзера", "Equalizer frame rate"),
                 trf(
                     "{0}. Ещё светящаяся точка фонарика и навигатора",
@@ -307,11 +307,11 @@ fun EffectsScreen(onBack: () -> Unit) {
     }
 }
 
-/** Название шрифта острова для подписи: у своего — имя файла. */
+/** Island font name for the label: for a custom font, the file name. */
 private fun fontTitle(s: IslandSettings): String =
     if (s.islandFont == IslandFont.CUSTOM && s.customFontName.isNotEmpty()) s.customFontName else s.islandFont.title
 
-/** Толщина текста острова: −1 тоньше, 0 обычная, 1 и 2 — жирнее. */
+/** Island text weight: -1 thinner, 0 normal, 1 and 2 bolder. */
 private fun weightTitle(shift: Int): String = when (shift) {
     -1 -> tr("Тоньше", "Lighter")
     1 -> tr("Жирнее", "Bolder")
@@ -320,8 +320,8 @@ private fun weightTitle(shift: Int): String = when (shift) {
 }
 
 /**
- * «Шрифт острова»: Inter (как на iPhone), шрифт телефона или свой файл .ttf/.otf, и толщина текста.
- * Свой шрифт копируется в личную папку приложения; если файл не читается как шрифт, остаётся прежний.
+ * "Island font": Inter (as on iPhone), the phone's font, or your own .ttf/.otf file, plus text weight.
+ * A custom font is copied to the app's private folder; if the file can't be read as a font, the previous one stays.
  */
 @Composable
 fun FontScreen(onBack: () -> Unit) {
@@ -338,7 +338,7 @@ fun FontScreen(onBack: () -> Unit) {
             } else {
                 val old = SettingsRepo.current.customFontFile
                 SettingsRepo.update { copy(islandFont = IslandFont.CUSTOM, customFontName = picked.first, customFontFile = picked.second) }
-                // Прежний свой шрифт больше не нужен
+                // The previous custom font is no longer needed
                 if (old.isNotEmpty() && old != picked.second) withContext(Dispatchers.IO) { File(IslandType.fontsDir(context), old).delete() }
             }
         }
@@ -361,7 +361,7 @@ fun FontScreen(onBack: () -> Unit) {
                     onClick = {
                         when {
                             f != IslandFont.CUSTOM -> SettingsRepo.update { copy(islandFont = f) }
-                            // Свой шрифт уже выбирали — нажатие ещё раз даёт выбрать другой файл
+                            // A custom font was already chosen; tapping again lets you pick another file
                             s.customFontFile.isEmpty() || chosen -> picker.launch(arrayOf("font/*", "application/*"))
                             else -> SettingsRepo.update { copy(islandFont = f) }
                         }
@@ -382,8 +382,8 @@ fun FontScreen(onBack: () -> Unit) {
 }
 
 /**
- * Копия выбранного файла шрифта в личной папке: (название для настроек, имя файла) или null, если это не шрифт.
- * Больше 30 МБ не копируем — шрифтов такого размера не бывает.
+ * A copy of the chosen font file in the private folder: (name for settings, file name) or null if it isn't a font.
+ * We don't copy anything over 30 MB, since fonts are never that big.
  */
 private fun copyFont(context: Context, uri: Uri): Pair<String, String>? {
     val name = runCatching {

@@ -177,7 +177,7 @@ private fun Step(n: Int, title: String, text: String) {
 
 private val GithubPurple = Color(0xFF8250DF)
 
-/** Главная страница проекта на GitHub — в браузере или приложении GitHub. */
+/** The project's main GitHub page, in the browser or the GitHub app. */
 private fun openGithub(context: Context) {
     runCatching {
         context.startActivity(
@@ -186,7 +186,7 @@ private fun openGithub(context: Context) {
     }
 }
 
-/** «О приложении»: версия и обновления, помощь и ссылки — отдельно от настроек. */
+/** "About": version and updates, help and links, separate from settings. */
 @Composable
 fun AppInfoScreen(open: (Screen) -> Unit) {
     val context = LocalContext.current
@@ -271,14 +271,14 @@ fun AppInfoScreen(open: (Screen) -> Unit) {
     if (notes) NotesDialog { notes = false }
 }
 
-/** Шапка «О приложении»: значок, название, версия и есть ли обновление. */
+/** "About" header: icon, name, version and whether an update is available. */
 @Composable
 private fun AppHeader(version: String, update: UpdateState) {
     Column(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(Ui.Card).padding(vertical = 26.dp, horizontal = 20.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        // Как значок приложения на рабочем столе: капсула на сиреневом
+        // Like the app icon on the home screen: a capsule on lilac
         Box(Modifier.size(84.dp).clip(RoundedCornerShape(24.dp)).background(Ui.Primary), contentAlignment = Alignment.Center) {
             Image(ImageVector.vectorResource(R.drawable.ic_launcher_foreground), null, Modifier.requiredSize(126.dp))
         }
@@ -312,7 +312,7 @@ private fun AppHeader(version: String, update: UpdateState) {
     }
 }
 
-/** «Об острове»: что он умеет, откуда идея и как устроен. */
+/** "About the island": what it can do, where the idea came from and how it works. */
 @Composable
 fun IdeaScreen(onBack: () -> Unit) {
     Page(tr("Об острове", "About the island"), onBack) {
@@ -363,8 +363,8 @@ internal fun InfoText(text: String) {
 }
 
 /**
- * Что остров видит в уведомлениях навигаторов, такси и доставки: если расстояние или стрелка
- * не показываются, здесь видно, что именно присылает приложение.
+ * What the island sees in notifications from navigation, taxi and delivery apps: if the distance or arrow
+ * isn't shown, this shows what exactly the app sends.
  */
 @Composable
 fun DiagScreen(onBack: () -> Unit) {
@@ -385,8 +385,8 @@ fun DiagScreen(onBack: () -> Unit) {
 }
 
 /**
- * Что остров увидел при оплате: экран оплаты, уведомления и СМС банков и как он их понял. Если «Оплачено»
- * не появилось, здесь видно почему.
+ * What the island saw during payment: the payment screen, bank notifications and SMS, and how it understood them. If "Paid"
+ * didn't appear, this shows why.
  */
 @Composable
 fun PayDiagScreen(onBack: () -> Unit) {
@@ -407,7 +407,7 @@ fun PayDiagScreen(onBack: () -> Unit) {
     )
 }
 
-/** «Почему не показано»: что остров решил о последних уведомлениях — только приложение и причина. */
+/** "Why not shown": what the island decided about recent notifications, just the app and the reason. */
 @Composable
 fun NotifDiagScreen(onBack: () -> Unit) {
     val log by NotifDebug.log.collectAsState()
@@ -434,7 +434,7 @@ private fun DumpScreen(title: String, intro: String, empty: String, items: List<
         } else {
             Row {
                 PillAction(tr("Скопировать всё", "Copy all")) {
-                    // Суммы и тексты банков: Android 13+ не показывает такой буфер обмена во всплывающем превью
+                    // Bank amounts and texts: Android 13+ doesn't show this kind of clipboard in the pop-up preview
                     val clip = ClipData.newPlainText(title, items.joinToString("\n\n"))
                     clip.description.extras = PersistableBundle().apply { putBoolean("android.content.extra.IS_SENSITIVE", true) }
                     context.getSystemService(ClipboardManager::class.java)?.setPrimaryClip(clip)

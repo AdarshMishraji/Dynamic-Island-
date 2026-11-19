@@ -18,36 +18,36 @@ import kotlinx.serialization.json.Json
 import java.util.Locale
 
 /**
- * Язык приложения и острова. Русский и английский пишутся парой прямо в коде: tr("Зарядка", "Charging").
- * Остальные языки — таблицы в assets/i18n/<код>.json: английская
- * строка → перевод. Чего в таблице нет, показывается по-английски. «Как в системе» — язык телефона, если он
- * есть в приложении, иначе английский.
+ * App and island language. Russian and English are written as a pair right in the code: tr("Зарядка", "Charging").
+ * Other languages are tables in assets/i18n/<code>.json: English
+ * string → translation. What's missing from the table is shown in English. "As in system" is the phone's language, if it's
+ * in the app, otherwise English.
  */
 object Lang {
-    /** Языки приложения: код → таблица переводов (у русского и английского таблиц нет) */
+    /** App languages: code → translation table (Russian and English have no tables) */
     val codes = listOf("ru", "en", "id", "pt", "kk", "fr", "es", "ja", "zh")
 
     private var assets: android.content.res.AssetManager? = null
     private var resources: Resources? = null
     private val tables = HashMap<String, Map<String, String>>()
 
-    /** Таблицы переводов читаются из assets — зовёт приложение при запуске. */
+    /** Translation tables are read from assets; the app calls this at startup. */
     fun init(context: Context) {
         assets = context.applicationContext.assets
         resources = context.resources
     }
 
-    /** Код текущего языка из [codes]. */
+    /** Current language code from [codes]. */
     val code: String
         get() = when (val l = SettingsRepo.current.language) {
             AppLanguage.SYSTEM -> systemCode()
             else -> l.code
         }
 
-    /** Не русский: подписи, единицы и форматы — как в английском, если у языка нет своих */
+    /** Not Russian: labels, units and formats are as in English if the language has none of its own */
     val en: Boolean get() = code != "ru"
 
-    /** Для дат: «пятница, 24 октября», «Friday, October 24», «Jumat, 24 Oktober» */
+    /** For dates: "пятница, 24 октября", "Friday, October 24", "Jumat, 24 Oktober" */
     val locale: Locale
         get() = when (code) {
             "ru" -> Locale.forLanguageTag("ru")
@@ -63,12 +63,12 @@ object Lang {
 
     private fun systemCode(): String {
         val lang = runCatching { (resources ?: Resources.getSystem()).configuration.locales[0].language }.getOrNull() ?: Locale.getDefault().language
-        // Индонезийский у старых Android — «in»
+        // Indonesian on old Android is "in"
         val c = if (lang == "in") "id" else lang
         return if (c in codes) c else "en"
     }
 
-    /** Таблица перевода языка [c]: английская строка → перевод. Пустая, если файла нет. */
+    /** Translation table for language [c]: English string → translation. Empty if there's no file. */
     fun table(c: String): Map<String, String> = synchronized(tables) {
         tables.getOrPut(c) {
             runCatching {
@@ -78,7 +78,7 @@ object Lang {
         }
     }
 
-    /** Строка на текущем языке по паре «русская — английская». */
+    /** String in the current language from a "Russian, English" pair. */
     fun pick(ru: String, en: String): String = when (val c = code) {
         "ru" -> ru
         "en" -> en
@@ -86,12 +86,12 @@ object Lang {
     }
 }
 
-/** Строка на текущем языке. */
+/** String in the current language. */
 fun tr(ru: String, en: String): String = Lang.pick(ru, en)
 
 /**
- * Строка с подстановками на текущем языке: tr("Через {0} минут", "In {0} minutes", n). В переводах
- * {0}, {1}… можно переставлять — значения встанут куда нужно.
+ * String with substitutions in the current language: tr("Через {0} минут", "In {0} minutes", n). In translations
+ * {0}, {1}… can be reordered; the values will land where needed.
  */
 fun trf(ru: String, en: String, vararg args: Any?): String {
     var s = Lang.pick(ru, en)
@@ -100,13 +100,13 @@ fun trf(ru: String, en: String, vararg args: Any?): String {
 }
 
 /**
- * Сменили язык (в настройках или в системе) — всё внутри рисуется заново уже на новом языке.
- * Состояние снаружи (открытая вкладка и экран) остаётся.
+ * Language changed (in settings or system): everything inside is redrawn in the new language.
+ * State outside (open tab and screen) stays.
  */
 @Composable
 fun LangScope(content: @Composable () -> Unit) {
     val language by remember { SettingsRepo.state.map { it.language }.distinctUntilChanged() }.collectAsState(initial = SettingsRepo.current.language)
-    // Язык системы меняется вместе с конфигурацией — чтение подписывает на неё
+    // System language changes with the configuration: reading it subscribes to that
     LocalConfiguration.current
     key(language, Lang.code) { content() }
 }

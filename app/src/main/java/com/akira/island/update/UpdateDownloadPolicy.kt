@@ -6,8 +6,8 @@ internal object UpdateDownloadPolicy {
     const val MAX_APK_BYTES = 100L * 1024 * 1024
 
     /**
-     * Репозиторий переименовывали (Akira9021 → Arusaky), и GitHub отдаёт в ссылках на файлы текущее
-     * имя владельца. Старое имя оставляем ради ссылок, созданных до переезда.
+     * The repository was renamed (Akira9021 → Arusaky), and GitHub returns the current
+     * owner name in file links. We keep the old name for links created before the move.
      */
     private val repos = setOf("arusaky/dynamic-island-", "akira9021/dynamic-island-")
     private val assetHosts = setOf("release-assets.githubusercontent.com", "objects.githubusercontent.com", "github-releases.githubusercontent.com")

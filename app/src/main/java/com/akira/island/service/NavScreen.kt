@@ -26,7 +26,7 @@ import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 
-/** Что удалось прочитать с экрана навигатора: расстояние до манёвра, улица, прибытие и поворот. */
+/** What was read from the navigator screen: distance to the maneuver, street, arrival, and turn. */
 data class ScreenNav(
     val pkg: String,
     val label: String,
@@ -35,20 +35,20 @@ data class ScreenNav(
     val street: String?,
     val eta: String?,
     val turn: Turn?,
-    /** Подсказка навигатора («Поверните направо на …»), если она есть на экране */
+    /** Navigator hint ("Поверните направо на …"), if it is on the screen */
     val instruction: String? = null,
 )
 
 /**
- * Данные навигатора с его собственного экрана. Многие навигаторы (2ГИС, Яндекс Навигатор) пишут
- * в уведомлении только «Навигатор запущен», а расстояние и стрелку показывают лишь у себя на экране.
- * Пока навигатор открыт, остров читает с экрана подписи (только у навигаторов) и дополняет ими
- * «живую активность»; стрелку поворота узнаёт по картинке манёвра.
+ * Navigator data from its own screen. Many navigators (2GIS, Yandex Navigator) write only "Навигатор запущен"
+ * in the notification, and show the distance and arrow only on their own screen.
+ * While the navigator is open, the island reads labels from the screen (navigators only) and supplements
+ * the "live activity" with them; it recognizes the turn arrow from the maneuver image.
  */
 object NavScreen {
     val data = MutableStateFlow<Map<String, ScreenNav>>(emptyMap())
 
-    /** Дополняет активность из уведомления тем, что видно на экране навигатора. */
+    /** Supplements the notification's activity with what is visible on the navigator screen. */
     fun merge(l: LiveInfo, sn: ScreenNav?): LiveInfo {
         if (sn == null || l.kind != LiveKind.NAV) return l
         val turn = sn.turn ?: l.turn
@@ -61,8 +61,8 @@ object NavScreen {
     }
 
     /**
-     * Что писать под расстоянием, как в примере: подсказка навигатора; если её нет на экране —
-     * своя по стрелке («Поверните налево») и улица.
+     * What to write under the distance, as in the example: the navigator hint; if it is not on the screen,
+     * its own text from the arrow ("Поверните налево") and the street.
      */
     fun instructionText(instruction: String?, turn: Turn?, street: String?): String? {
         if (instruction != null) {
@@ -81,7 +81,7 @@ object NavScreen {
         }
     }
 
-    /** Навигатор без своего уведомления: активность только по экрану. */
+    /** Navigator without its own notification: activity from the screen only. */
     fun synthetic(sn: ScreenNav): LiveInfo = LiveInfo(
         key = "screen:${sn.pkg}",
         pkg = sn.pkg,
@@ -98,7 +98,7 @@ object NavScreen {
         turn = sn.turn,
     )
 
-    /** Активность навигатора [pkg] с учётом экрана — для плашки при запуске. */
+    /** Navigator activity of [pkg] taking the screen into account, for the banner on start. */
     fun mergedFor(pkg: String): LiveInfo? {
         val sn = data.value[pkg]
         val base = IslandBus.live.value.values.firstOrNull { it.pkg == pkg }
@@ -110,7 +110,7 @@ object NavScreen {
     }
 }
 
-/** Надпись на экране навигатора и где она стоит; [image] — картинка без текста (значок манёвра). */
+/** A label on the navigator screen and where it is; [image] is an image without text (the maneuver icon). */
 data class ScreenItem(val text: String, val left: Int, val top: Int, val right: Int, val bottom: Int, val image: Boolean = false) {
     val width get() = right - left
     val height get() = bottom - top
@@ -118,7 +118,7 @@ data class ScreenItem(val text: String, val left: Int, val top: Int, val right: 
     val cy get() = (top + bottom) / 2
 }
 
-/** Разбор надписей экрана навигатора. Отдельно от Android, чтобы можно было проверить на примерах. */
+/** Parsing of navigator screen labels. Separate from Android so it can be tested on examples. */
 object NavScreenParser {
     data class Result(
         val distance: String?,
@@ -143,7 +143,7 @@ object NavScreenParser {
     fun parse(raw: List<ScreenItem>): Result {
         val items = raw.map { it.copy(text = it.text.replace(' ', ' ').trim()) }.filter { it.text.isNotEmpty() || it.image }
         val texts = items.filter { it.text.isNotEmpty() }
-        // «12» и «км» часто лежат отдельно: рядом в строке или одно под другим — склеиваем
+        // "12" and "км" are often separate: next to each other in a row or one under the other, so we join them
         val joined = texts.filter { unit.matches(it.text) }.mapNotNull { u ->
             val beside = texts.filter { n ->
                 number.matches(n.text) && n.right <= u.left + u.width / 3 && u.left - n.right < u.height * 2.5 &&
@@ -158,7 +158,7 @@ object NavScreenParser {
         }
         val all = texts + joined
 
-        // Расстояние до манёвра — самое верхнее; самое нижнее — сколько осталось ехать всего
+        // The distance to the maneuver is the topmost; the bottommost is how much is left to drive in total
         val distances = all.filter { distanceRe.matches(it.text) }
         val dist = distances.minByOrNull { it.top }
         val total = distances.maxByOrNull { it.top }?.takeIf { it !== dist && it.top > (dist?.bottom ?: 0) }
@@ -175,11 +175,11 @@ object NavScreenParser {
         val eta = listOfNotNull(time?.let { trf("Прибытие в {0}", "Arrive {0}", it) }, left?.let(LiveParser::units),
             total?.text?.replace(Regex("""\s+"""), " ")?.let(LiveParser::units))
             .takeIf { it.isNotEmpty() }?.joinToString(" · ")
-        // Направление — только из подсказки: в подписях кнопок («← шаг влево») тоже бывают «влево» и «вправо»
+        // Direction comes only from the hint: button labels ("← шаг влево") also contain "влево" and "вправо"
         val instruction = LiveParser.instructionOf(texts.map { it.text })
         val turn = instruction?.let { LiveParser.detectTurn(listOf(it)) }
 
-        // Значок манёвра — картинка слева от расстояния; если её нет в разметке, берём место слева
+        // The maneuver icon is the image to the left of the distance; if it is not in the layout, take the spot to the left
         val icon = dist?.let { d ->
             val img = items.filter { it.image && it.right <= d.left + d.height / 3 && overlap(it.top, it.bottom, d.top, d.bottom) >= d.height / 3 }
                 .minByOrNull { d.left - it.right }
@@ -196,9 +196,9 @@ object NavScreenParser {
 }
 
 /**
- * Куда показывает стрелка манёвра на картинке: сравниваем, где «чернила» стрелки сверху и снизу.
- * Наконечник левее основания — налево, правее — направо, над основанием — прямо. Если на картинке
- * есть цветная стрелка (основной путь) и серые (другие полосы), смотрим только на цветную.
+ * Where the maneuver arrow on the image points: compare where the arrow's "ink" is at the top and bottom.
+ * Arrowhead left of the base: left; right of the base: right; above the base: straight. If the image
+ * has a colored arrow (main route) and gray ones (other lanes), look only at the colored one.
  */
 object TurnClassifier {
     fun classify(px: IntArray, w: Int, h: Int): Turn? {
@@ -262,9 +262,9 @@ object TurnClassifier {
 }
 
 /**
- * Пока открыт навигатор, раз в полторы секунды читает подписи его экрана. Работает только для
- * приложений из списка навигаторов; другие экраны остров не читает. Стрелку поворота определяет
- * по снимку экрана (Android 11+) — только области значка манёвра и только когда манёвр сменился.
+ * While the navigator is open, reads its screen labels every second and a half. Works only for
+ * apps from the navigator list; the island does not read other screens. It determines the turn arrow
+ * from a screenshot (Android 11+), only of the maneuver icon area and only when the maneuver changed.
  */
 class NavScreenReader(private val service: AccessibilityService, private val scope: CoroutineScope) {
     private var job: Job? = null
@@ -290,7 +290,7 @@ class NavScreenReader(private val service: AccessibilityService, private val sco
         }
     }
 
-    /** Навигатор ушёл с экрана: данные быстро устаревают, через 15 секунд убираем их. */
+    /** The navigator left the screen: the data goes stale quickly, so remove it after 15 seconds. */
     fun stop() {
         job?.cancel()
         job = null
@@ -338,7 +338,7 @@ class NavScreenReader(private val service: AccessibilityService, private val sco
             instruction = r.instruction,
         )
         if (sn != prev) NavScreen.data.value = NavScreen.data.value + (pkg to sn)
-        // Расстояние появилось впервые — показываем широкую плашку, потом остров сожмётся в капсулу
+        // Distance appeared for the first time: show the wide banner, then the island shrinks into a capsule
         if (prev?.distance == null && sn.distance != null) {
             NavScreen.mergedFor(pkg)?.let { LiveParser.postBanner(service, it) }
         }

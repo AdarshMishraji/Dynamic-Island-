@@ -6,8 +6,8 @@ import android.os.Bundle
 import android.view.WindowManager
 
 /**
- * Прозрачный экран без содержимого: включает дисплей, когда звонит таймер острова, и сразу закрывается.
- * Запасной способ (см. ScreenWaker) — обычно экран включает само окно острова.
+ * A transparent screen with no content: it turns the display on when the island timer rings, and closes right away.
+ * A fallback (see ScreenWaker); usually the island window itself turns the screen on.
  */
 class WakeActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -19,7 +19,7 @@ class WakeActivity : Activity() {
             @Suppress("DEPRECATION")
             window.addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON)
         }
-        // Экран включается, как только окно показано; дальше его держит остров со звонящим таймером
+        // The screen turns on as soon as the window is shown; after that the island with the ringing timer holds it
         window.decorView.postDelayed({ finish() }, 600)
     }
 

@@ -230,7 +230,7 @@ private fun IslandSettings.edge(card: Boolean, index: Int, value: Float): Island
     0 -> copy(outlineTopWidth = value); 1 -> copy(outlineRightWidth = value)
     2 -> copy(outlineBottomWidth = value); else -> copy(outlineLeftWidth = value)
 }
-/** Кружки цветов в карточке: выбранный — с галочкой. */
+/** Color circles in the card: the selected one has a checkmark. */
 @Composable
 fun Swatches(colors: List<Long>, selected: Long, onPick: (Long) -> Unit) {
     var picker by rememberSaveable { mutableStateOf(false) }

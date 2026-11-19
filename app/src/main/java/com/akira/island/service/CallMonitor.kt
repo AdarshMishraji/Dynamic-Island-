@@ -26,8 +26,8 @@ import kotlinx.coroutines.withContext
 import java.util.Locale
 
 /**
- * Звонки по состоянию телефона, а не по уведомлению: многие звонилки (Xiaomi, Samsung…)
- * показывают входящий своим окном без обычного уведомления, и по нему звонок не увидеть.
+ * Calls by phone state, not by notification: many dialers (Xiaomi, Samsung...)
+ * show an incoming call in their own window without a regular notification, so the call can't be seen through it.
  */
 class CallMonitor(private val context: Context, private val scope: CoroutineScope) {
     private var lastState: String? = null
@@ -52,7 +52,7 @@ class CallMonitor(private val context: Context, private val scope: CoroutineScop
 
     private fun handle(intent: Intent) {
         val state = intent.getStringExtra(TelephonyManager.EXTRA_STATE) ?: return
-        // Номер приходит только с разрешением «Журнал звонков», вторым таким же сообщением
+        // The number arrives only with the "Call log" permission, in a second message of the same kind
         @Suppress("DEPRECATION")
         val num = intent.getStringExtra(TelephonyManager.EXTRA_INCOMING_NUMBER)
         if (!num.isNullOrBlank()) number = num
@@ -75,7 +75,7 @@ class CallMonitor(private val context: Context, private val scope: CoroutineScop
         val base = if (incoming) System.currentTimeMillis() else since
         put(CallInfo(KEY, dialer(), num?.let(::format) ?: tr("Звонок", "Call"), null, incoming, base, System.currentTimeMillis(),
             null, null, null, null))
-        // Имя и фото из контактов подставляем, когда найдутся
+        // We fill in the name and photo from contacts when found
         lookupJob?.cancel()
         if (num != null && granted(Manifest.permission.READ_CONTACTS)) {
             lookupJob = scope.launch {

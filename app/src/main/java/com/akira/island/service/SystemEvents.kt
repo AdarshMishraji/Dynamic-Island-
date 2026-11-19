@@ -49,7 +49,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
-/** Системные события, которые остров показывает короткими уведомлениями. */
+/** System events that the island shows as short notifications. */
 class SystemEvents(private val context: Context) {
     private fun ic(id: Int) = Ios.load(context, id)
 
@@ -83,10 +83,10 @@ class SystemEvents(private val context: Context) {
     private val headsetBattery = HeadsetBatteryTracker()
     private var headsetNoticeJob: kotlinx.coroutines.Job? = null
     private val wifiNetworks = HashSet<Network>()
-    /** Когда подключили или отключили зарядку — кабель от компьютера не должен давать вторую плашку «USB» */
+    /** When charging was connected or disconnected: a cable from a computer must not give a second "USB" banner */
     private var lastPowerChange = 0L
 
-    /** Первые секунды после запуска система присылает текущее состояние — это не события. */
+    /** For the first seconds after launch the system sends the current state, which is not an event. */
     private val warmingUp get() = SystemClock.elapsedRealtime() - startedAt < 3000
 
     private fun notice(enabled: Boolean, n: Notice) {
@@ -310,10 +310,10 @@ class SystemEvents(private val context: Context) {
             Intent.ACTION_SCREEN_OFF -> {
                 IslandBus.screenOn.value = false
                 main.removeCallbacks(batterySample)
-                // Блокировка может включиться чуть позже экрана — заранее прячем тексты, если она вообще есть
+                // The lock may turn on slightly later than the screen, so we hide texts in advance if there is one at all
                 if (keyguard?.isDeviceSecure == true) IslandBus.locked.value = true
                 IslandBus.reply.value = null
-                // Как на iPhone: кнопка питания выключает звонящий таймер
+                // Like on iPhone: the power button turns off a ringing timer
                 if (IslandBus.timer.value?.ringing == true) Controls.cancelTimer()
                 Controls.collapse()
             }
@@ -350,7 +350,7 @@ class SystemEvents(private val context: Context) {
                 if (on == dnd) return
                 dnd = on
                 IslandBus.dnd.value = on
-                // Как фокус «Не беспокоить» на iPhone: луна и состояние
+                // Like the iPhone "Do Not Disturb" focus: a moon and the state
                 notice(
                     s.evDnd,
                     Notice(tr("Не беспокоить", "Do Not Disturb"), if (on) tr("Вкл", "On") else tr("Выкл", "Off"), ic(R.drawable.ios_moon),
@@ -368,7 +368,7 @@ class SystemEvents(private val context: Context) {
                 val mode = intent.getIntExtra(AudioManager.EXTRA_RINGER_MODE, -1)
                 if (mode >= 0) IslandBus.ringer.value = mode
                 val n = when (mode) {
-                    // Как переключатель «Звонок/Бесшумно» на iPhone: короткая пилюля, колокольчик качается
+                    // Like the iPhone "Ring/Silent" switch: a short pill, the bell swings
                     AudioManager.RINGER_MODE_NORMAL -> Notice("", tr("Звонок", "Ring"), ic(R.drawable.ios_notifications), Color.White, style = NoticeStyle.PILL)
                     AudioManager.RINGER_MODE_VIBRATE -> Notice("", tr("Вибрация", "Vibrate"), ic(R.drawable.ios_phone_portrait),
                         Tints.Purple, style = NoticeStyle.PILL)
@@ -386,9 +386,9 @@ class SystemEvents(private val context: Context) {
                 ) { headsetBattery.invalidateAll(); updateVisibleHeadsetBattery(); return }
                 val device = IntentCompat.getParcelableExtra(intent, BluetoothDevice.EXTRA_DEVICE, BluetoothDevice::class.java)
                     ?: return
-                // Без разрешения BLUETOOTH_CONNECT имени и класса устройства не узнать
+                // Without the BLUETOOTH_CONNECT permission the device name and class can't be known
                 val name = runCatching { device.name }.getOrNull()
-                // Класс не прочитать — не знаем, наушники ли это (могут быть часы или машина), молчим
+                // We can't read the class, so we don't know whether it is headphones (it could be a watch or a car), so we stay quiet
                 val major = runCatching { device.bluetoothClass?.majorDeviceClass }.getOrNull() ?: return
                 if (major != BluetoothClass.Device.Major.AUDIO_VIDEO) {
                     // Only paired devices: unpaired BLE links come and go without the user doing anything.
@@ -441,8 +441,8 @@ class SystemEvents(private val context: Context) {
                 val prev = usbConnected
                 usbConnected = connected
                 if (initialSticky || prev == null || prev == connected) return
-                // Кабель от компьютера ещё и заряжает: плашки «Зарядка» достаточно. Порядок сообщений
-                // системы не определён, поэтому смотрим чуть позже, менялась ли зарядка рядом по времени
+                // A cable from a computer also charges: a "Charging" banner is enough. The order of system
+                // messages is not defined, so we check a bit later whether charging changed close in time
                 main.postDelayed({
                     if (abs(SystemClock.elapsedRealtime() - lastPowerChange) < 3000) return@postDelayed
                     if (connected) notice(s.evUsbOn, Notice("USB", tr("Подключено", "Connected"), ic(R.drawable.ios_hardware_chip), Tints.Teal))
@@ -455,8 +455,8 @@ class SystemEvents(private val context: Context) {
     private var lastUnlock = 0L
 
     /**
-     * Разблокировали. Сообщение системы USER_PRESENT доходит с задержкой, поэтому служба острова
-     * зовёт это раньше — как только видит, что экран блокировки ушёл. Второй вызов подряд ничего не делает.
+     * Unlocked. The system USER_PRESENT message arrives with a delay, so the island service
+     * calls this earlier, as soon as it sees the lock screen is gone. A second call in a row does nothing.
      */
     fun onUnlocked() {
         refreshBattery()
@@ -476,10 +476,10 @@ class SystemEvents(private val context: Context) {
         if (current.ring != ring) IslandBus.notice.value = current.copy(ring = ring)
     }
 
-    /** Заблокирован ли телефон так, что для входа нужен PIN-код, ключ или пароль. */
+    /** Whether the phone is locked so that a PIN, key or password is needed to get in. */
     private fun isLocked(): Boolean = keyguard?.isDeviceLocked == true
 
-    /** На экране экран блокировки — с PIN-кодом или просто «проведите, чтобы разблокировать». */
+    /** There is a lock screen on the screen: with a PIN, or just "swipe to unlock". */
     private fun isKeyguard(): Boolean = keyguard?.isKeyguardLocked == true
 
     private fun isDnd(): Boolean {
@@ -546,7 +546,7 @@ class SystemEvents(private val context: Context) {
     }
 
     private companion object {
-        // Скрытые, но давно стабильные широковещательные сообщения системы
+        // Hidden but long-stable system broadcast messages
         const val BT_BATTERY_CHANGED = "android.bluetooth.device.action.BATTERY_LEVEL_CHANGED"
         const val EXTRA_BT_BATTERY = "android.bluetooth.device.extra.BATTERY_LEVEL"
         const val USB_STATE = "android.hardware.usb.action.USB_STATE"

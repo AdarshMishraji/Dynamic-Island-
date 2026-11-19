@@ -12,12 +12,12 @@
     <!-- Optional brightness slider; user grants special access in system settings. -->
     <uses-permission android:name="android.permission.WRITE_SETTINGS" />
 
-    <!-- Таймер острова будит телефон к своему окончанию, даже если экран погашен -->
+    <!-- The island timer wakes the phone when it ends, even if the screen is off -->
     <uses-permission
         android:name="android.permission.SCHEDULE_EXACT_ALARM"
         android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
-    <!-- …и включает экран, когда звонит -->
+    <!-- ...and turns the screen on when it rings -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.TURN_SCREEN_ON" />
 
@@ -26,23 +26,23 @@
         android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 
-    <!-- Звонки: состояние вызова, номер, имя из контактов, ответ и сброс -->
+    <!-- Calls: call state, number, contact name, answer and hang up -->
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.READ_CALL_LOG" />
     <uses-permission android:name="android.permission.READ_CONTACTS" />
     <uses-permission android:name="android.permission.ANSWER_PHONE_CALLS" />
 
-    <!-- «Не выгружать остров»: служба на переднем плане, чтобы остров не закрывался вместе с недавними -->
+    <!-- "Keep island alive": a foreground service so the island isn't closed along with recent apps -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
 
-    <!-- Кнопки «Режим звука» и «Не беспокоить» в раскрытом острове -->
+    <!-- "Ringer mode" and "Do Not Disturb" buttons in the expanded island -->
     <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
 
-    <!-- Обновление из приложения: скачанный APK открывает системная установка -->
+    <!-- In-app update: the downloaded APK is opened by the system installer -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
-    <!-- Иконки и запуск приложений, которые показывают музыку и прогресс -->
+    <!-- Icons and launching of apps that show music and progress -->
     <uses-feature
         android:name="android.hardware.telephony"
         android:required="false" />
@@ -57,18 +57,18 @@
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.HOME" />
         </intent>
-        <!-- Приложения «Часы» для экрана «Системные плашки» -->
+        <!-- "Clock" apps for the "System banners" screen -->
         <intent>
             <action android:name="android.intent.action.SET_TIMER" />
         </intent>
-        <!-- Будильник в острове — только от приложений-будильников, а не от календарей и напоминалок -->
+        <!-- Alarm in the island comes only from alarm apps, not from calendars and reminder apps -->
         <intent>
             <action android:name="android.intent.action.SET_ALARM" />
         </intent>
         <intent>
             <action android:name="android.intent.action.SHOW_ALARMS" />
         </intent>
-        <!-- Приложения, которые умеют платить телефоном по NFC: только на их экране остров ждёт оплату -->
+        <!-- Apps that can pay by phone via NFC: the island waits for payment only on their screen -->
         <intent>
             <action android:name="android.nfc.cardemulation.action.HOST_APDU_SERVICE" />
         </intent>
@@ -124,8 +124,8 @@
             </intent-filter>
         </activity-alias>
 
-        <!-- «Поставь таймер» от помощника или виджета: если выбрать остров, таймер сразу в нём.
-         Как у «Часов» Android: позвать его могут только приложения с правом ставить будильники и таймеры -->
+        <!-- "Set a timer" from an assistant or widget: if the island is chosen, the timer goes straight into it.
+         Same as Android's "Clock": only apps with permission to set alarms and timers can call it -->
         <activity
             android:name=".ui.SetTimerActivity"
             android:excludeFromRecents="true"
@@ -141,7 +141,7 @@
             </intent-filter>
         </activity>
 
-        <!-- Пустой прозрачный экран: включает дисплей, когда звонит таймер, если не вышло иначе -->
+        <!-- An empty transparent screen: turns on the display when the timer rings, if nothing else worked -->
         <activity
             android:name=".service.WakeActivity"
             android:excludeFromRecents="true"
@@ -150,7 +150,7 @@
             android:taskAffinity=""
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
 
-        <!-- Отдаёт системной установке скачанное обновление -->
+        <!-- Hands the downloaded update to the system installer -->
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -161,7 +161,7 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
-        <!-- Рисует остров поверх строки состояния -->
+        <!-- Draws the island over the status bar -->
         <service
             android:name=".service.IslandService"
             android:exported="true"
@@ -175,7 +175,7 @@
                 android:resource="@xml/accessibility_config" />
         </service>
 
-        <!-- «Не выгружать остров»: тихое уведомление держит процесс острова, когда приложение смахивают из недавних -->
+        <!-- "Keep island alive": a quiet notification keeps the island process alive when the app is swiped from recents -->
         <service
             android:name=".service.KeepAliveService"
             android:exported="false"
@@ -185,8 +185,8 @@
                 android:value="Keeps the Dynamic Island accessibility overlay running when the app is removed from recent apps" />
         </service>
 
-        <!-- Плитка «Остров» в шторке: выключить на время банковского приложения и включить обратно.
-         Привязаться к ней может только система (BIND_QUICK_SETTINGS_TILE) -->
+        <!-- "Island" tile in the shade: turn it off while using a banking app and back on.
+         Only the system can bind to it (BIND_QUICK_SETTINGS_TILE) -->
         <service
             android:name=".service.IslandTile"
             android:exported="true"
@@ -201,7 +201,7 @@
                 android:value="true" />
         </service>
 
-        <!-- Музыка, прогресс и таймеры из уведомлений других приложений -->
+        <!-- Music, progress and timers from other apps' notifications -->
         <service
             android:name=".service.NotifListener"
             android:exported="true"

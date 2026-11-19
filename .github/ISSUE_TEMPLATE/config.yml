@@ -1,7 +1,7 @@
 blank_issues_enabled: false
 contact_links:
   - name: 💬 Ask a question
-    url: https://github.com/ВАШ_ЛОГИН/ВАШ_РЕПО/discussions
+    url: https://github.com/YOUR_LOGIN/YOUR_REPO/discussions
     about: Ask for help or discuss ideas in GitHub Discussions
   - name: 📖 Read the documentation
     url: https://github.com/Arusaky/Dynamic-Island-#-installation

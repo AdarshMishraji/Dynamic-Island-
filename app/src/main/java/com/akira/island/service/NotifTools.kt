@@ -14,8 +14,8 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * «Почему не показано»: последние уведомления, которые остров разбирал как сообщения, и что он решил.
- * Только приложение и причина — без имён и текстов; только в памяти, после перезапуска пусто.
+ * "Why not shown": the latest notifications the island parsed as messages, and what it decided.
+ * Only the app and the reason, no names or texts; kept in memory only, empty after a restart.
  */
 object NotifDebug {
     val log = MutableStateFlow<List<String>>(emptyList())
@@ -29,15 +29,15 @@ object NotifDebug {
 }
 
 /**
- * Приложения, от которых приходили уведомления, — для списка «Приложения» в настройках уведомлений.
- * Список приложений телефона без особого разрешения Android не даёт, поэтому запоминаем тех, кто писал.
+ * Apps that have sent notifications, for the "Apps" list in the notification settings.
+ * Android doesn't give the phone's app list without a special permission, so we remember the ones that posted.
  */
 object NotifApps {
     private const val PREFS = "island_apps"
     private const val KEY = "apps"
     private const val LIMIT = 80
 
-    /** Пакет → название, новые — в конце */
+    /** Package → name, new ones at the end */
     val apps = MutableStateFlow<Map<String, String>>(emptyMap())
     private var loaded = false
     private val json = Json { ignoreUnknownKeys = true }
@@ -67,9 +67,9 @@ object NotifApps {
 }
 
 /**
- * «История уведомлений»: показанные сообщения ждут в острове — значки приложений в капсуле, список при раскрытии.
- * Уходят, когда их прочитали в самом приложении (уведомление убрано), открыли из острова, очистили
- * или прошло время из настроек. Хранятся только в памяти.
+ * "Notification history": shown messages wait in the island: app icons in the capsule, a list when expanded.
+ * They go away when read in the app itself (notification removed), opened from the island, cleared,
+ * or when the time from the settings passes. Kept in memory only.
  */
 object Inbox {
     private const val LIMIT = 20
@@ -90,7 +90,7 @@ object Inbox {
         IslandBus.inbox.value = emptyList()
     }
 
-    /** Сколько ещё ждать до того, как истечёт самое старое; null — ждать нечего (или «пока не прочитаете»). */
+    /** How much longer to wait until the oldest one expires; null means nothing to wait for (or "until you read it"). */
     fun nextExpiry(now: Long): Long? {
         val minutes = SettingsRepo.current.historyMinutes
         if (minutes <= 0) return null
@@ -98,7 +98,7 @@ object Inbox {
         return (oldest + minutes * 60_000L - now).coerceAtLeast(0)
     }
 
-    /** Убрать истёкшие; при выключенной истории — всё. */
+    /** Remove the expired ones; if history is off, remove everything. */
     fun prune(now: Long) {
         val minutes = SettingsRepo.current.historyMinutes
         val list = IslandBus.inbox.value

@@ -82,7 +82,7 @@ fun IslandSwitch(checked: Boolean, onChange: (Boolean) -> Unit, enabled: Boolean
     )
 }
 
-/** Страница: крупный заголовок, кнопка «назад» и действие справа. */
+/** A page: a large title, a "back" button and an action on the right. */
 @Composable
 fun Page(
     title: String,
@@ -172,7 +172,7 @@ fun SectionHeader(text: String, trailing: (@Composable () -> Unit)? = null) {
     }
 }
 
-/** Отдельная карточка с иконкой в подложке и переключателем (экран карточек и событий). */
+/** A separate card with an icon on a backing and a switch (the cards and events screen). */
 @Composable
 fun ToggleCard(
     icon: ImageVector,
@@ -227,13 +227,13 @@ private fun Pos.shape(): Shape = when (this) {
     Pos.Last -> RoundedCornerShape(6.dp, 6.dp, 28.dp, 28.dp)
 }
 
-/** Склеенные строки настроек: одна карточка со скруглением сверху и снизу. */
+/** Joined settings rows: one card with rounded corners at the top and bottom. */
 @Composable
 fun Group(content: @Composable ColumnScope.() -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(3.dp), content = content)
 }
 
-/** Значок пункта: белый на цветном скруглённом квадрате, как в «Настройках» iPhone; без цвета — просто значок. */
+/** The item icon: white on a colored rounded square, like in iPhone "Settings"; with no color, just an icon. */
 @Composable
 fun ItemIcon(icon: ImageVector, color: Color?, size: Dp = 36.dp) {
     if (color == null) {
@@ -269,7 +269,7 @@ fun GroupItem(
         ItemIcon(icon, color)
         Spacer(Modifier.width(if (color != null) 16.dp else 22.dp))
         Column(Modifier.weight(1f)) {
-            // Метка переносится на следующую строку целиком, а название не разрывается
+            // The label wraps to the next line as a whole, and the name isn't broken
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(title, color = Ui.Text, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, lineHeight = 21.sp,
                     modifier = Modifier.align(Alignment.CenterVertically))
@@ -284,7 +284,7 @@ fun GroupItem(
     }
 }
 
-/** Строка списка со своим значком слева (например, значком приложения) вместо векторного. */
+/** A list row with its own icon on the left (for example, an app icon) instead of a vector one. */
 @Composable
 fun GroupRow(
     pos: Pos,
@@ -325,7 +325,7 @@ fun GroupToggle(
     GroupItem(pos, icon, title, subtitle, color = color, badge = badge, onClick = { onChange(!checked) }) { IslandSwitch(checked, onChange) }
 }
 
-/** Маленькая метка рядом с названием, например «Экспериментальный». */
+/** A small label next to the name, for example "Experimental". */
 @Composable
 fun Badge(text: String, modifier: Modifier = Modifier, color: Color = Tile.Orange) {
     Text(
@@ -339,7 +339,7 @@ fun Badge(text: String, modifier: Modifier = Modifier, color: Color = Tile.Orang
     )
 }
 
-/** Круглая кнопка со значком в шапке страницы — в пару к кнопке «Назад», не отнимает место у заголовка. */
+/** A round button with an icon in the page header, paired with the "Back" button; it doesn't take space from the title. */
 @Composable
 fun IconAction(icon: ImageVector, description: String, onClick: () -> Unit) {
     Box(
@@ -389,7 +389,7 @@ fun GroupSlider(
     }
 }
 
-/** Строка с ползунком и кнопками ±1 по краям — для точной подгонки размеров. */
+/** A row with a slider and ±1 buttons at the edges, for fine-tuning sizes. */
 @Composable
 fun GroupStepSlider(
     pos: Pos,

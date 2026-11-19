@@ -22,8 +22,8 @@ import com.akira.island.core.ProgressInfo
 import com.akira.island.data.SettingsRepo
 
 /**
- * Доступ к уведомлениям даёт две вещи: медиасессии всех плееров
- * и уведомления с прогрессом или секундомером (загрузки, Часы, звонки).
+ * Notification access gives two things: media sessions of all players
+ * and notifications with progress or a stopwatch (downloads, Clock, calls).
  */
 class NotifListener : NotificationListenerService() {
     private var media: MediaMonitor? = null
@@ -40,7 +40,7 @@ class NotifListener : NotificationListenerService() {
         connected = this
         media?.stop()
         media = MediaMonitor(applicationContext).also { it.start() }
-        // Уже висящие уведомления разбираем без показа сообщений — они не новые
+        // Notifications already posted are parsed without showing messages, since they are not new
         val existing = runCatching { activeNotifications }.getOrNull()
         runCatching {
             if (existing != null) HotspotMonitor.rescan(this, existing.toList())
@@ -192,14 +192,14 @@ object NotificationParser {
         val call = when {
             isMedia -> null
             n.category == Notification.CATEGORY_CALL -> parseCall(context, sbn, title)
-            // Discord, Zoom, Teams и др. звонят без «звонковой» категории — узнаём их по кнопкам
+            // Discord, Zoom, Teams and others ring without the "call" category, so we recognize them by their buttons
             VoipApps.isVoip(sbn.packageName) -> parseVoip(context, sbn, title)
             else -> null
         }
-        // Какой канал присылает всплывающую плашку звонка или будильника — для экрана «Системные плашки»
+        // Which channel sends the call or alarm popup banner, for the "System banners" screen
         SystemBanners.onPosted(sbn, incomingCall = call?.incoming == true)
-        // Звонящий будильник или таймер «Часов» — у него полноэкранный сигнал; остров включит экран сам,
-        // даже если всплывающие плашки «Часов» выключены
+        // A ringing alarm or Clock timer has a full-screen alert; the island turns on the screen itself,
+        // even if Clock popup banners are turned off
         val ringing = n.category == Notification.CATEGORY_ALARM && n.fullScreenIntent != null
         if (ringing != (sbn.key in IslandBus.ringingAlarms.value)) {
             IslandBus.ringingAlarms.value = if (ringing) IslandBus.ringingAlarms.value + sbn.key else IslandBus.ringingAlarms.value - sbn.key
@@ -209,25 +209,25 @@ object NotificationParser {
         }
 
         val ticking = ex.getBoolean(Notification.EXTRA_SHOW_CHRONOMETER, false) && n.`when` > 0
-        // Кнопки «Часов» (пауза, продолжить, сброс) — их нажимают кнопки острова
+        // Clock buttons (pause, resume, reset): the island's buttons press them
         val clock = ClockApps.isClock(context, sbn.packageName)
         val buttons = if (clock) ClockWords.buttons(n.actions) else emptyMap()
-        // Таймер или секундомер «Часов» на паузе: счёт стоит, время только в тексте, а в кнопках — «Продолжить»
+        // A paused Clock timer or stopwatch: the count is stopped, the time is only in the text, and the buttons have "Продолжить"
         val pausedMs = if (clock && !ticking && call == null && !isMedia && ClockAction.START in buttons) {
             listOf(Notification.EXTRA_TITLE, Notification.EXTRA_TEXT, Notification.EXTRA_SUB_TEXT, Notification.EXTRA_BIG_TEXT)
                 .firstNotNullOfOrNull { ClockScreenParser.find(ex.getCharSequence(it)) }
         } else {
             null
         }
-        // Идущий таймер или секундомер «Часов», у которого время только в тексте (каждую секунду новое), а не
-        // системным отсчётом: так у части оболочек (Xiaomi, vivo и др.) — остров ведёт отсчёт сам от этого времени
+        // A running Clock timer or stopwatch whose time is only in the text (new every second), and not
+        // a system countdown: on some shells (Xiaomi, vivo, etc.) it is like this, so the island counts on its own from that time
         val texts = listOf(Notification.EXTRA_TITLE, Notification.EXTRA_TEXT, Notification.EXTRA_SUB_TEXT, Notification.EXTRA_BIG_TEXT)
         val runningMs = if (clock && !ticking && pausedMs == null && call == null && !isMedia && ClockAction.PAUSE in buttons) {
             texts.firstNotNullOfOrNull { ClockScreenParser.find(ex.getCharSequence(it)) }
         } else {
             null
         }
-        // Многие диктофоны дают только время/паузу. Android 14+ также допускает FGS-плашку без ongoing.
+        // Many voice recorders give only time/pause. Android 14+ also allows an FGS banner without ongoing.
         // The recording name may contain a date/time; prefer the live status over its title.
         val recordingTexts = listOf(Notification.EXTRA_TEXT, Notification.EXTRA_SUB_TEXT, Notification.EXTRA_BIG_TEXT,
             Notification.EXTRA_INFO_TEXT, Notification.EXTRA_SUMMARY_TEXT)
@@ -247,7 +247,7 @@ object NotificationParser {
             mediaNotification = isMedia,
             hasRecordingAction = recordingActions.any { isSpecificRecordingAction(it.title?.toString().orEmpty()) })
         val recorder = call == null && recording.recording
-        // Неактивный (на паузе) таймер, который остров уже убрал, снова не показываем
+        // An inactive (paused) timer that the island already removed is not shown again
         val chrono = call == null && !recording.playback && (recorder || !isMedia && (ticking || pausedMs != null || runningMs != null)) &&
             !ClockControl.wasDismissed(sbn.key, pausedMs)
         if (clock && chrono) ClockControl.reader?.onNotificationChrono(sbn.packageName)
@@ -264,8 +264,8 @@ object NotificationParser {
                     isStopRecordingAction(t)
                 }?.actionIntent
                 val now = System.currentTimeMillis()
-                // Отсчёт: системный — от Notification.when; из текста — от прочитанного времени; у записи без
-                // отсчёта — от времени в тексте или с момента, как появилось уведомление
+                // Countdown: system one from Notification.when; from text, from the time read; for an entry without
+                // a countdown, from the time in the text or from when the notification appeared
                 val base = when {
                     runningMs != null -> if (down) now + runningMs else now - runningMs
                     recorder -> n.`when`.takeIf { ticking && it in 1..now }
@@ -292,12 +292,12 @@ object NotificationParser {
         IslandBus.live.value = IslandBus.live.value.toMutableMap().apply {
             if (live != null) put(sbn.key, live) else remove(sbn.key)
         }
-        // Новая «живая активность» сначала показывается широкой плашкой, потом сворачивается в капсулу
+        // A new "live activity" is first shown as a wide banner, then collapses into a capsule
         if (live != null && !liveWasKnown && !initial && SettingsRepo.current.cardLive && SettingsRepo.current.liveBanner) {
             LiveParser.postBannerLater(context, sbn.key)
         }
         if (recorder) IslandBus.progress.value = IslandBus.progress.value - sbn.key
-        // Навигатор и такси показываются своей карточкой, а не полоской прогресса или таймером
+        // Navigator and taxi are shown with their own card, not a progress bar or a timer
         if (live != null) {
             IslandBus.progress.value = IslandBus.progress.value - sbn.key
             IslandBus.chrono.value = IslandBus.chrono.value - sbn.key
@@ -305,7 +305,7 @@ object NotificationParser {
 
         val service = context as? NotificationListenerService
         if (!initial && service != null && !isMedia && call == null && !chrono && !hasProgress && live == null) {
-            // Уведомление об оплате из банка — «Оплачено» с галочкой, а не карточка сообщения
+            // A payment notification from a bank is "Paid" with a checkmark, not a message card
             if (PayMonitor.onNotification(context, sbn)) return
             Messages.maybeShow(service, sbn, appLabel(context, sbn.packageName))
         }
@@ -315,8 +315,8 @@ object NotificationParser {
         val n = sbn.notification
         val ex = n.extras
         val ticking = ex.getBoolean(Notification.EXTRA_SHOW_CHRONOMETER, false) && n.`when` > 0
-        // CallStyle (Android 12+) кладёт кнопки в extras, у остальных звонилок ищем по подписи на языке телефона;
-        // «Присоединиться» и «Отключиться» — у звонков в Discord и похожих приложениях
+        // CallStyle (Android 12+) puts buttons in extras; for other dialer apps we look by label in the phone's language;
+        // "Join" and "Disconnect" are for calls in Discord and similar apps
         var answer = pending(ex, "android.answerIntent")
         var decline = pending(ex, "android.declineIntent")
         var hangUp = pending(ex, "android.hangUpIntent")
@@ -328,7 +328,7 @@ object NotificationParser {
                 hangUp == null && (HangUpWords.any { it in t } || LeaveWords.any { it in t }) -> hangUp = a.actionIntent
             }
         }
-        // Идёт разговор: системный отсчёт или постоянное уведомление с кнопкой «Завершить» и без «Ответить»
+        // A call is in progress: a system countdown or an ongoing notification with an "End" button and no "Reply"
         val ongoing = ticking || (n.flags and Notification.FLAG_ONGOING_EVENT != 0 && hangUp != null && answer == null)
         val incoming = !ongoing && answer != null
         if (!incoming && !ongoing) return null
@@ -350,7 +350,7 @@ object NotificationParser {
             name = name,
             avatar = avatar,
             incoming = incoming,
-            // Без системного отсчёта время разговора идёт с момента, как появилось уведомление
+            // Without a system countdown, the call time runs from when the notification appeared
             base = if (ticking) n.`when` else n.`when`.takeIf { it in 1..System.currentTimeMillis() } ?: sbn.postTime,
             postTime = sbn.postTime,
             answer = answer,
@@ -361,9 +361,9 @@ object NotificationParser {
     }
 
     /**
-     * Звонок в Discord, Zoom, Teams и др.: у них нет категории звонка, поэтому узнаём по кнопкам. Входящий —
-     * есть «Принять» («Присоединиться») и «Отклонить»; идёт разговор — постоянное уведомление с «Отключиться»
-     * («Выйти», «Завершить»).
+     * A call in Discord, Zoom, Teams, etc.: they have no call category, so we recognize them by buttons. Incoming:
+     * it has "Accept" ("Join") and "Decline"; a call in progress: an ongoing notification with "Disconnect"
+     * ("Leave", "End").
      */
     private fun parseVoip(context: Context, sbn: StatusBarNotification, title: String): CallInfo? {
         val n = sbn.notification
@@ -399,7 +399,7 @@ object NotificationParser {
         )
     }
 
-    /** Таймер на паузе или секундомер — по заголовку и каналу; по умолчанию таймер. */
+    /** A paused timer or a stopwatch, by title and channel; timer by default. */
     private fun looksLikeTimer(n: Notification, title: String): Boolean {
         val t = (title + " " + n.channelId.orEmpty()).lowercase()
         return when {
@@ -414,7 +414,7 @@ object NotificationParser {
 
     fun onRemoved(key: String) {
         Messages.forget(key)
-        // Прочитали в самом приложении — из «Истории уведомлений» уходит, а плашка, которую держат дольше, — тоже
+        // Read in the app itself: it leaves the "Notification history", and a banner that is held longer does too
         Inbox.remove(key)
         Messages.onRemoved(key)
         LiveParser.forget(key)
@@ -437,7 +437,7 @@ object NotificationParser {
     }.getOrDefault(pkg)
 }
 
-/** Приложения звонков без «звонковой» категории уведомлений: звонок узнаётся по кнопкам. */
+/** Call apps without the "call" notification category: a call is recognized by buttons. */
 object VoipApps {
     private val known = setOf(
         "com.discord",
@@ -453,7 +453,7 @@ object VoipApps {
     fun isVoip(pkg: String) = pkg in known
 }
 
-/** Приложения, чьи постоянные уведомления остров показывает как «живые активности». */
+/** Apps whose ongoing notifications the island shows as "live activities". */
 object LiveApps {
     private val nav = setOf(
         "com.google.android.apps.maps",
@@ -499,8 +499,8 @@ object LiveApps {
 }
 
 /**
- * Подписи кнопок звонка на разных языках: остров смотрят во Вьетнаме, Индонезии, Таиланде, Бразилии,
- * Латинской Америке и не только — без них ответить и сбросить из острова там не получалось.
+ * Call button labels in different languages: the island is used in Vietnam, Indonesia, Thailand, Brazil,
+ * Latin America and elsewhere; without them, answering and ending from the island did not work there.
  */
 private val AnswerWords = listOf(
     "ответ", "принять", "жауап", "қабылдау", "answer", "accept", "trả lời", "nghe", "jawab", "terima", "angkat", "contestar", "responder",
@@ -517,10 +517,10 @@ private val HangUpWords = listOf(
     "挂断", "掛斷", "終了", "종료", "аяқтау",
 )
 
-/** «Присоединиться» к звонку (Discord и др.) — как «Принять» */
+/** "Join" a call (Discord and others): same as "Accept" */
 private val JoinWords = listOf("join", "присоедин", "gabung", "entrar", "participar", "қосылу", "beitreten", "rejoindre", "unirse")
 
-/** «Отключиться», «Выйти» из звонка (Discord, Zoom и др.) — как «Завершить» */
+/** "Disconnect", "Leave" a call (Discord, Zoom and others): same as "End" */
 private val LeaveWords = listOf(
     "disconnect", "leave", "отключ", "выйти", "покинуть", "putus", "keluar", "tinggalkan", "desconectar", "sair", "ажырату", "шығу",
     "trennen", "verlassen", "quitter", "salir",

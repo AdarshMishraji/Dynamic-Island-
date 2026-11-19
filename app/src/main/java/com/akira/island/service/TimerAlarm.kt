@@ -23,8 +23,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
- * Доводит таймер острова до звонка и звонит, пока его не выключат. Пока экран погашен, телефон
- * засыпает и обычное ожидание стоит, поэтому к концу таймера его будит будильник системы.
+ * Brings the island timer to the ring and rings until it is turned off. While the screen is off, the phone
+ * sleeps and a plain wait stops, so a system alarm wakes it at the end of the timer.
  */
 class TimerAlarm(private val context: Context, private val scope: CoroutineScope) {
     private val alarms = context.getSystemService(AlarmManager::class.java)
@@ -35,7 +35,7 @@ class TimerAlarm(private val context: Context, private val scope: CoroutineScope
     private val wakeReceiver = object : BroadcastReceiver() {
         override fun onReceive(c: Context, intent: Intent) {
             ringIfDue()
-            // Звонок включаем сразу, пока система держит телефон проснувшимся ради этого сообщения
+            // We start the ring right away, while the system keeps the phone awake for this message
             if (IslandBus.timer.value?.ringing == true) startRinging()
         }
     }
@@ -84,7 +84,7 @@ class TimerAlarm(private val context: Context, private val scope: CoroutineScope
         }
     }
 
-    /** Время вышло — таймер звонит. Срабатывает от ожидания или от будильника, что раньше. */
+    /** Time is up and the timer rings. It fires from the wait or from the alarm, whichever is first. */
     private fun ringIfDue() {
         val t = IslandBus.timer.value ?: return
         if (t.ringing || t.pausedLeft != null || t.left(SystemClock.elapsedRealtime()) > 100) return
@@ -97,7 +97,7 @@ class TimerAlarm(private val context: Context, private val scope: CoroutineScope
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || am.canScheduleExactAlarms()) {
                 am.setExactAndAllowWhileIdle(AlarmManager.ELAPSED_REALTIME_WAKEUP, endAt, wakeIntent)
             } else {
-                // Точные будильники запрещены в настройках — система разбудит чуть позже, но разбудит
+                // Exact alarms are forbidden in the settings, so the system will wake it a bit later, but it will wake it
                 am.setAndAllowWhileIdle(AlarmManager.ELAPSED_REALTIME_WAKEUP, endAt, wakeIntent)
             }
         }
@@ -125,7 +125,7 @@ class TimerAlarm(private val context: Context, private val scope: CoroutineScope
             runCatching { it.vibrate(VibrationEffect.createWaveform(longArrayOf(0, 600, 400), 0)) }
             vibrating = true
         }
-        // Звонить вечно незачем: через минуту таймер гаснет сам
+        // There is no point in ringing forever: after a minute the timer stops on its own
         autoStopJob = scope.launch {
             delay(60_000)
             if (IslandBus.timer.value?.ringing == true) IslandBus.timer.value = null

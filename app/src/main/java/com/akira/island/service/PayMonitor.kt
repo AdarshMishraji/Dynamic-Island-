@@ -26,32 +26,32 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
- * Бесконтактная оплата телефоном, как Apple Pay на iPhone. Подсказка «Оплата · К терминалу» появляется,
- * только когда приложение оплаты показывает экран оплаты телефоном («Поднесите телефон к терминалу»)
- * или всплывает окно «Оплата» сервисов Google, — а не когда просто открыли банк. Держится она, пока
- * оплата не пройдёт или вы не выйдете из приложения. «Оплачено» с суммой — по экрану приложения
- * (PayScreenReader), уведомлению банка или СМС с его номера.
+ * Contactless payment by phone, like Apple Pay on iPhone. The "Payment · To terminal" hint appears
+ * only when the payment app shows the pay-by-phone screen ("Hold your phone to the terminal")
+ * or the Google services "Payment" window pops up, not when you merely open the bank. It stays until
+ * the payment goes through or you leave the app. "Paid" with the amount comes from the app screen
+ * (PayScreenReader), a bank notification, or an SMS from its number.
  */
 object PayMonitor {
-    /** Известные банки и кошельки — на случай, если система не отдаст список платёжных служб. */
+    /** Known banks and wallets, in case the system doesn't return the list of payment services. */
     private val known = setOf(
-        "com.google.android.apps.walletnfcrel", // Google Кошелёк / Google Pay
+        "com.google.android.apps.walletnfcrel", // Google Wallet / Google Pay
         "com.samsung.android.spay", // Samsung Wallet
         "ru.nspk.mirpay", // Mir Pay
-        "com.idamob.tinkoff.android", // Т-Банк (T-Pay)
-        "ru.alfabank.mobile.android", // Альфа-Банк (Alfa Pay)
-        "ru.sberbankmobile", // СберБанк (SberPay)
-        "ru.vtb24.mobilebanking.android", // ВТБ
-        "ru.raiffeisennews", // Райффайзен
-        "ru.gazprombank.android.mobilebank.app", // Газпромбанк
-        "ru.sovcomcard.halva.v1", // Халва
-        "ru.mts.money", // МТС Банк
+        "com.idamob.tinkoff.android", // T-Bank (T-Pay)
+        "ru.alfabank.mobile.android", // Alfa-Bank (Alfa Pay)
+        "ru.sberbankmobile", // Sberbank (SberPay)
+        "ru.vtb24.mobilebanking.android", // VTB
+        "ru.raiffeisennews", // Raiffeisen
+        "ru.gazprombank.android.mobilebank.app", // Gazprombank
+        "ru.sovcomcard.halva.v1", // Halva
+        "ru.mts.money", // MTS Bank
         "com.paypal.android.p2pmobile",
         "com.revolut.revolut",
         "com.belkartpay.belkartpay",
     )
 
-    /** Кошельки: показали сумму у себя на экране — значит, это и есть оплата. */
+    /** Wallets: if they show an amount on their own screen, that is the payment. */
     private val wallets = setOf(
         "com.google.android.apps.walletnfcrel",
         "com.samsung.android.spay",
@@ -59,18 +59,18 @@ object PayMonitor {
     )
 
     /**
-     * Три минуты: столько держится «К терминалу», столько ждём оплату после экрана оплаты
-     * и столько одна и та же сумма не показывается второй раз.
+     * Three minutes: how long "To terminal" stays, how long we wait for payment after the payment screen,
+     * and how long the same amount isn't shown a second time.
      */
     const val PAY_WINDOW_MS = 180_000L
 
-    /** Само окно «Оплата» из сервисов Google: появляется, когда телефон поднесли к терминалу. */
+    /** The "Payment" window itself from Google services: appears when the phone is held to a terminal. */
     const val GMS = "com.google.android.gms"
 
-    /** Окна системы поверх приложения оплаты — окна Google, вопрос NFC «Оплатить через…?»: из приложения не ушли. */
+    /** System windows over the payment app (Google windows, the NFC "Pay with...?" question): the user hasn't left the app. */
     fun overlay(pkg: String) = pkg == GMS || pkg == "com.android.nfc"
 
-    /** Уведомления этих приложений тоже разбираются как оплата: банки, которых нет в списке выше. */
+    /** Notifications from these apps are also parsed as payments: banks that aren't in the list above. */
     private val bankish = Regex(
         "bank|banking|sber|tinkoff|tbank|vtb|alfa|raiff|sovcom|halva|gazprom|psbank|otkritie|pochta|rshb|uralsib|" +
             "rosbank|akbars|mkb|yoomoney|qiwi|wallet|\\.pay|pay\\.|mirpay|spay|fintech|" +
@@ -78,7 +78,7 @@ object PayMonitor {
         RegexOption.IGNORE_CASE,
     )
 
-    /** Отправитель СМС — банк: короткий номер (900) или название. */
+    /** The SMS sender is a bank: a short number (900) or a name. */
     private val bankSender = Regex(
         "^\\d{3,6}$|bank|банк|sber|сбер|tinkoff|т-банк|t-bank|vtb|втб|alfa|альфа|raiff|райф|gazprom|газпром|sovcom|совком|" +
             "pochta|почта|otkritie|открытие|mts|мтс|ozon|озон|psb|псб|rshb|россельхоз|uralsib|уралсиб|rosbank|росбанк|halva|халва|" +
@@ -88,8 +88,8 @@ object PayMonitor {
 
     private var readyPkg: String? = null
     /**
-     * Когда и в каком приложении в последний раз показали «К терминалу»: сумма в уведомлении этого приложения,
-     * кошелька или СМС банка сразу после этого — та самая оплата. После «Оплачено» окно закрывается.
+     * When and in which app "To terminal" was last shown: an amount in a notification from this app,
+     * a wallet or a bank SMS right after that is that payment. After "Paid" the window closes.
      */
     private var readyShownAt = 0L
     private var readyShownPkg: String? = null
@@ -99,14 +99,14 @@ object PayMonitor {
     private var paymentSession = 0L
     private val payments = PaymentDeduplicator()
 
-    /** Приложения, которые умеют платить телефоном (объявляют службу эмуляции карты, HCE), — из системы. */
+    /** Apps that can pay by phone (they declare a card emulation service, HCE), taken from the system. */
     private var nfcApps: Set<String> = emptySet()
     private var nfcCheckedAt = 0L
 
-    /** Умеет ли приложение платить телефоном: Mir Pay, T-Pay, SberPay, Яндекс Пэй и любые другие. */
+    /** Whether the app can pay by phone: Mir Pay, T-Pay, SberPay, Yandex Pay and any others. */
     fun isPayApp(context: Context, pkg: String): Boolean = pkg in known || pkg in nfcApps(context)
 
-    /** Список платёжных приложений меняется редко — спрашиваем систему раз в десять минут. */
+    /** The list of payment apps rarely changes, so we ask the system once every ten minutes. */
     private fun nfcApps(context: Context): Set<String> {
         val now = SystemClock.elapsedRealtime()
         if (nfcCheckedAt == 0L || now - nfcCheckedAt > 10 * 60_000) {
@@ -120,12 +120,12 @@ object PayMonitor {
         return nfcApps
     }
 
-    /** Чей значок показывать: у окна Google — Google Кошелёк. */
+    /** Whose icon to show: for the Google window, Google Wallet. */
     private fun appFor(pkg: String) = if (pkg == GMS) "com.google.android.apps.walletnfcrel" else pkg
 
     /**
-     * На экране — оплата телефоном: подсказка в острове, пока не заплатите или не уйдёте из приложения.
-     * На всякий случай (если о выходе не узнаем) через три минуты она уходит сама.
+     * The screen shows a phone payment: a hint in the island until you pay or leave the app.
+     * Just in case (if we don't learn about leaving), it goes away on its own after three minutes.
      */
     fun onPayScreen(context: Context, pkg: String, confirmed: Boolean = true) {
         val s = SettingsRepo.current
@@ -150,22 +150,22 @@ object PayMonitor {
         }
     }
 
-    /** Окно «Оплата» из сервисов Google — телефон поднесли к терминалу. */
+    /** The "Payment" window from Google services: the phone was held to a terminal. */
     fun onTapAndPay(context: Context) = onPayScreen(context, GMS)
 
-    /** Открыли приложение оплаты. С «Подсказкой при открытии» — сразу, как раньше; без неё ждём экран оплаты. */
+    /** The payment app was opened. With "Hint on open" shown right away, as before; without it we wait for the payment screen. */
     fun onAppOpened(context: Context, pkg: String) {
         if (SettingsRepo.current.payHintOnOpen && isPayApp(context, pkg)) onPayScreen(context, pkg, confirmed = false)
     }
 
-    /** Открыто другое приложение — ушли, так и не заплатив: подсказка больше не нужна. */
+    /** Another app was opened: the user left without paying, so the hint is no longer needed. */
     fun onForeground(pkg: String) {
         val ready = readyPkg ?: return
         if (pkg == ready || overlay(pkg)) return
         clearReady()
     }
 
-    /** Убрать подсказку: оплатили, ушли из приложения или погасили экран. */
+    /** Remove the hint: paid, left the app, or the screen went off. */
     fun clearReady() {
         readyPkg = null
         confirmedReadyPkg = null
@@ -180,8 +180,8 @@ object PayMonitor {
         RegexOption.IGNORE_CASE,
     )
     /**
-     * Не оплата: пополнения, переводы, возвраты, неудачные платежи, а также напоминания и счета
-     * («К оплате», «Не забудьте оплатить», «будет списано», «Payment due»).
+     * Not a payment: top-ups, transfers, refunds, failed payments, and also reminders and bills
+     * ("К оплате", "Не забудьте оплатить", "будет списано", "Payment due").
      */
     private val skip = Regex(
         "пополн|зачисл|поступил|входящ|получен|вам перев|кэшбэк|кешбэк|cashback|возврат|refund|отклон|отказ|declined|не удал|ошибк|" +
@@ -191,8 +191,8 @@ object PayMonitor {
     )
 
     /**
-     * «Перевод» — не оплата, если до него не было экрана оплаты телефоном. Но сразу после экрана оплаты так
-     * иногда подписывают саму оплату (СБП, QR), поэтому тогда это слово не мешает.
+     * "Перевод" ("Transfer") is not a payment if there was no phone payment screen before it. But right after the payment screen
+     * the payment itself is sometimes labeled that way (SBP, QR), so then the word doesn't get in the way.
      */
     private val transfer = Regex("перевод|transfer|transferred", RegexOption.IGNORE_CASE)
 
@@ -212,7 +212,7 @@ object PayMonitor {
         )
     }
 
-    /** Приложение оплаты показало у себя галочку и сумму. */
+    /** The payment app showed a checkmark and an amount on its screen. */
     fun onScreenPaid(context: Context, pkg: String, sum: String) {
         val s = SettingsRepo.current
         PayDebug.add(trf("С экрана: оплачено {0}", "From the screen: paid {0}", sum), pkg)
@@ -225,8 +225,8 @@ object PayMonitor {
     }
 
     /**
-     * Уведомление от банка, кошелька или СМС банка об оплате. Возвращает true, если оно показано
-     * как «Оплачено» (или уже было показано с экрана) и обычной карточкой сообщения показывать его не нужно.
+     * A notification from a bank, wallet or bank SMS about a payment. Returns true if it was shown
+     * as "Paid" (or was already shown from the screen) and doesn't need to be shown as a regular message card.
      */
     fun onNotification(context: Context, sbn: StatusBarNotification): Boolean {
         val s = SettingsRepo.current
@@ -245,14 +245,14 @@ object PayMonitor {
         val text = paymentNotificationBody(ex.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString(),
             ex.getCharSequence(Notification.EXTRA_TEXT)?.toString())
         val all = PayScreenParser.normalize("$title $text")
-        // У настоящей оплаты всегда есть сумма; без неё это скорее реклама или новость банка
+        // A real payment always has an amount; without one it's more likely a bank ad or news
         val sum = PayScreenParser.amount(all)
         if (sum == null) {
             PayDebug.add(tr("Без суммы — не оплата", "No amount — not a payment"), pkg, all)
             return false
         }
-        // Кошельки (Google Кошелёк, Samsung Wallet, Mir Pay) пишут только магазин и сумму с картой, без слова «оплата»;
-        // сумма сразу после экрана оплаты телефоном — от того же приложения, платёжного или СМС банка — та самая оплата
+        // Wallets (Google Wallet, Samsung Wallet, Mir Pay) write only the shop, the amount and the card, without the word "payment";
+        // an amount right after the phone payment screen, from the same app (payment app or bank SMS), is that payment
         val now = SystemClock.elapsedRealtime()
         val recent = PaymentRules.followsReady(sbn.postTime, readyWallAt, now, readyShownAt, PAY_WINDOW_MS) &&
             (pkg == readyShownPkg || sms || readyShownPkg == appFor(GMS) && pkg in wallets)
@@ -269,7 +269,7 @@ object PayMonitor {
     private var smsPkg: String? = null
     private var smsCheckedAt = 0L
 
-    /** Приложение СМС по умолчанию — раз в минуту, его меняют редко. */
+    /** The default SMS app, checked once a minute since it rarely changes. */
     private fun defaultSms(context: Context): String? {
         val now = SystemClock.elapsedRealtime()
         if (smsCheckedAt == 0L || now - smsCheckedAt > 60_000) {
@@ -281,8 +281,8 @@ object PayMonitor {
 }
 
 /**
- * «Диагностика оплаты»: что остров увидел — экран оплаты, уведомления банков и кошельков, СМС банков —
- * и как это понял. Последние 15 записей, только в памяти: после перезапуска пусто, никуда не отправляется.
+ * "Payment diagnostics": what the island saw (payment screen, bank and wallet notifications, bank SMS)
+ * and how it interpreted it. The last 15 entries, in memory only: empty after a restart, never sent anywhere.
  */
 object PayDebug {
     val log = MutableStateFlow<List<String>>(emptyList())
@@ -292,7 +292,7 @@ object PayDebug {
     private var last = ""
 
     fun add(result: String, pkg: String, text: String = "") {
-        // Экран оплаты разбирается много раз подряд — одно и то же записываем один раз
+        // The payment screen is parsed many times in a row, so we record the same thing once
         val what = buildString {
             append(result).append('\n').append(pkg)
             if (text.isNotBlank()) append('\n').append(com.akira.island.security.redactDiagnosticNumbers(text).trim().take(200))

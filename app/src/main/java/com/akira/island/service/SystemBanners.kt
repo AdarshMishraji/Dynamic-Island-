@@ -13,18 +13,18 @@ import com.akira.island.data.SettingsRepo
 import kotlinx.coroutines.flow.MutableStateFlow
 
 /**
- * Всплывающие плашки системы, которые дублируют остров: входящий вызов, сигнал таймера и будильника,
- * батарея. Убрать чужую плашку приложение не может — её выключают в настройках уведомлений,
- * а остров показывает событие как раньше. Здесь запоминаем, какой канал прислал такую плашку,
- * чтобы открыть в настройках сразу его.
+ * System pop-up banners that duplicate the island: incoming call, timer and alarm ring,
+ * battery. The app can't remove another app's banner; it is turned off in the notification settings,
+ * and the island shows the event as before. Here we remember which channel sent such a banner,
+ * so we can open exactly that one in the settings.
  */
 object SystemBanners {
-    /** Канал уведомления, приславший плашку, и звонок ли это */
+    /** The notification channel that sent the banner, and whether it is a call */
     data class Seen(val channel: String, val call: Boolean)
 
     val seen = MutableStateFlow<Map<String, Seen>>(emptyMap())
 
-    /** Всплывает ли у мессенджера своя плашка — по последнему сообщению (важность канала «высокая») */
+    /** Whether a messenger shows its own banner, based on the last message (channel importance is "high") */
     val popUp = MutableStateFlow<Map<String, Boolean>>(emptyMap())
 
     const val SYSTEM_UI = "com.android.systemui"
@@ -39,8 +39,8 @@ object SystemBanners {
     }
 
     /**
-     * Сообщение мессенджера показано в острове. Его канал запоминается в настройках — после перезапуска
-     * список в «Системных плашках» не пустой; запись — только когда канал новый.
+     * A messenger message was shown in the island. Its channel is remembered in the settings, so after a restart
+     * the list in "System banners" isn't empty; it is written only when the channel is new.
      */
     fun onMessage(pkg: String, channel: String?, popsUp: Boolean) {
         if (popUp.value[pkg] != popsUp) popUp.value = popUp.value + (pkg to popsUp)
@@ -49,13 +49,13 @@ object SystemBanners {
         }
     }
 
-    /** Звонилка по умолчанию и приложения, от которых уже приходили входящие. */
+    /** The default dialer and apps that have already sent incoming calls. */
     fun callApps(context: Context, seen: Map<String, Seen>): List<String> {
         val dialer = runCatching { context.getSystemService(TelecomManager::class.java)?.defaultDialerPackage }.getOrNull()
         return (listOfNotNull(dialer) + seen.filterValues { it.call }.keys).distinct()
     }
 
-    /** Приложения «Часы» — те, что умеют ставить таймер, и те, что уже присылали сигнал. */
+    /** "Clock" apps: those that can set a timer and those that have already sent a ring signal. */
     fun clockApps(context: Context, seen: Map<String, Seen>): List<String> {
         val timers = runCatching {
             @Suppress("DEPRECATION")
@@ -70,7 +70,7 @@ object SystemBanners {
         else -> NotificationParser.appLabel(context, pkg)
     }
 
-    /** Настройки уведомлений приложения [pkg] — сразу нужного канала, если он уже известен. */
+    /** Notification settings of the app [pkg], opening the needed channel directly if it is already known. */
     fun openSettings(context: Context, pkg: String) {
         val channel = seen.value[pkg]?.channel ?: SettingsRepo.current.msgChannels[pkg]
         val intent = if (channel != null) {

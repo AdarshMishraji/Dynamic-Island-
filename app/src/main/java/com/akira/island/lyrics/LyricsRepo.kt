@@ -18,12 +18,12 @@ import com.akira.island.security.openTrustedHttps
 import com.akira.island.security.readUtf8Bounded
 import kotlin.math.abs
 
-/** Найденный текст: [synced] — с настоящими метками времени; иначе обычный текст без караоке. */
+/** Found lyrics: [synced] has real timestamps; otherwise plain text without karaoke. */
 data class FoundLyrics(val lines: List<LyricLine>, val synced: Boolean)
 
 /**
- * Текст песен: сначала LRCLIB (https://lrclib.net), как в ПК-версии острова,
- * потом NetEase — там много русской и азиатской музыки.
+ * Song lyrics: first LRCLIB (https://lrclib.net), as in the PC version of the island,
+ * then NetEase, which has a lot of Russian and Asian music.
  */
 object LyricsRepo {
     private const val UA = "DynamicIslandAndroid/1.2 (https://github.com/Akira9021/Dynamic-Island-)"
@@ -43,13 +43,13 @@ object LyricsRepo {
             lookupContext.ensureActive()
             var t = title
             var a = artist
-            // У видео из браузера исполнитель часто сидит в названии: «Исполнитель - Песня»
+            // For browser videos the artist is often in the title: "Artist - Song"
             if (a.isBlank() && " - " in t) {
                 a = t.substringBefore(" - ").trim()
                 t = t.substringAfter(" - ").trim()
             }
             t = t.replace(noise, "").replace(feat, "").trim()
-            // «Исполнитель 1, Исполнитель 2» и «A & B» — для поиска хватит первого
+            // "Artist 1, Artist 2" and "A & B": the first is enough for search
             val mainArtist = a.split(",", "&", " x ", " feat", " ft.").first().trim()
             val key = LyricTiming.identity(t, mainArtist, album, durationMs)
             cache.get(key, refreshUnsynced)?.let { return@withContext it.lyrics }
@@ -67,7 +67,7 @@ object LyricsRepo {
                 }
                 ?: plain?.let { FoundLyrics(LyricTiming.plain(it), synced = false) }
             currentCoroutineContext().ensureActive()
-            // Сетевую ошибку не кешируем — попробуем при следующем включении трека
+            // We do not cache a network error; we will try again the next time the track plays
             if (found?.synced == true || !failed) cache.put(key, found)
             found
         }
@@ -119,7 +119,7 @@ object LyricsRepo {
             checkActive()
             pickLrclib(get("https://lrclib.net/api/search?" + encode(byFields)), title, artist, album, durationMs, onPlain)
         }?.let { return it }
-        // Свободный поиск находит то, что не совпало по полям (другое написание, транслит)
+        // Free search finds what did not match by fields (different spelling, transliteration)
         val q = mapOf("q" to "$artist $title".trim())
         return attempt(onError, stopOnBackoff = true) {
             checkActive()
@@ -186,13 +186,13 @@ object LyricsRepo {
         return null
     }
 
-    /** NetEase в начале пишет авторов: «作词 : …», «Composer: …» */
+    /** NetEase writes the credits at the start: "作词 : …", "Composer: …" */
     private val credit = Regex("""^(作词|作曲|编曲|制作人|lyrics|composer|producer|arranger|автор|музыка|слова)\s*[:：]""", RegexOption.IGNORE_CASE)
     private fun isCredit(text: String): Boolean = credit.containsMatchIn(text)
 
     private fun norm(s: String) = s.lowercase().replace(noise, "").filter { it.isLetterOrDigit() }
 
-    // Общее
+    // General
 
     private fun encode(params: Map<String, String>) =
         params.entries.joinToString("&") { (k, v) -> "$k=" + URLEncoder.encode(v, "UTF-8") }
@@ -221,7 +221,7 @@ object LyricsRepo {
 
     fun parse(lrc: String): List<LyricLine> = LyricTiming.parse(lrc)
 
-    /** Насколько может отличаться длительность, чтобы это была та же песня, секунд. */
+    /** How much the duration may differ for it to be the same song, in seconds. */
     private const val MAX_DIFF_S = 3.0
 
     private class ProviderBackoffException : IOException("Lyrics provider temporarily unavailable")

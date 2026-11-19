@@ -29,12 +29,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 
 /**
- * Разбор постоянных уведомлений навигаторов, такси и доставки. Кроме обычных полей берётся то, что
- * приложение рисует своей раскладкой (RemoteViews): у Яндекс Навигатора расстояние и время часто
- * лежат только там, а в заголовке — одно «Навигатор запущен».
+ * Parsing of ongoing notifications from navigators, taxi and delivery apps. Besides the usual fields, it takes what
+ * the app draws with its own layout (RemoteViews): in Yandex Navigator, distance and time often
+ * are only there, while the title says just "Навигатор запущен".
  */
 object LiveParser {
-    /** Что нашлось в раскладке уведомления: тексты по порядку и маленькая картинка (значок манёвра). */
+    /** What was found in the notification layout: texts in order and a small image (the maneuver icon). */
     private class Remote(val texts: List<String>, val image: Bitmap?, val note: String)
 
     private val distance = Regex("""(\d{1,3}(?:[.,]\d{1,2})?)\s?(км|метров|метра|м|km|mi|ft|m)\.?(?!\p{L})""", RegexOption.IGNORE_CASE)
@@ -51,7 +51,7 @@ object LiveParser {
         val sub = (ex.getCharSequence(Notification.EXTRA_SUB_TEXT) ?: ex.getCharSequence(Notification.EXTRA_INFO_TEXT))
             ?.toString()?.trim().orEmpty()
         val fields = listOf(head, text, big, sub)
-        // Собрать чужую раскладку — дорого, а обычные уведомления (акции, «заказ доставлен») её не требуют
+        // Building another app's layout is expensive, and ordinary notifications (promotions, "order delivered") do not need it
         val remote = if (!sbn.isOngoing) {
             Remote(emptyList(), null, tr("не разбиралась: уведомление не постоянное", "not parsed: the notification isn't ongoing"))
         } else if (findDistance(fields) != null && findEta(fields) != null) {
@@ -93,7 +93,7 @@ object LiveParser {
 
     private val lastBanner = HashMap<String, Long>()
 
-    /** Показать широкую плашку, но не чаще раза в минуту для одного приложения. */
+    /** Show the wide banner, but no more than once a minute per app. */
     fun postBanner(context: Context, l: LiveInfo) {
         if (!SettingsRepo.current.cardLive || !SettingsRepo.current.liveBanner) return
         val now = SystemClock.elapsedRealtime()
@@ -103,8 +103,8 @@ object LiveParser {
     }
 
     /**
-     * Новая активность из уведомления: плашку показываем через полторы секунды — за это время остров
-     * успевает прочитать экран навигатора, и на плашке уже есть расстояние и стрелка.
+     * New activity from a notification: show the banner after a second and a half; in that time the island
+     * manages to read the navigator screen, and the banner already has the distance and the arrow.
      */
     fun postBannerLater(context: Context, key: String) {
         IslandBus.scope.launch {
@@ -114,7 +114,7 @@ object LiveParser {
         }
     }
 
-    /** Широкая плашка при запуске: iPhone показывает новую «живую активность» развёрнутой, потом сворачивает. */
+    /** Wide banner on start: iPhone shows a new "live activity" expanded, then collapses it. */
     fun banner(context: Context, l: LiveInfo): Notice = Notice(
         title = l.title,
         icon = Ios.load(context, R.drawable.ios_navigate),
@@ -124,7 +124,7 @@ object LiveParser {
         extraMs = 2_000,
     )
 
-    /** «300 м», «3,7 км» — сначала короткие подписи, где расстояние стоит отдельно, потом любое упоминание. */
+    /** "300 м", "3,7 км": first short labels where the distance stands alone, then any mention. */
     internal fun findDistance(texts: List<String>): String? {
         val cleaned = texts.map { it.trim() }.filter { it.isNotEmpty() }
         cleaned.firstOrNull { it.length <= 12 && distance.matchEntire(it) != null }?.let { return normalize(it) }
@@ -137,8 +137,8 @@ object LiveParser {
     private val ruUnit = Regex("""(\d+)(?:,(\d+))?\s?(км|метров|метра|мин|м|ч)\.?(?!\p{L})""")
 
     /**
-     * Единицы на языке острова: по-английски «4,2 км» → «4.2 km», «12 мин» → «12 min», по-индонезийски и
-     * по-португальски — латиницей, но с запятой. По-русски и по-казахски — как прислал навигатор.
+     * Units in the island's language: in English "4,2 км" becomes "4.2 km", "12 мин" becomes "12 min"; in Indonesian and
+     * Portuguese, Latin script but with a comma. In Russian and Kazakh, as the navigator sent them.
      */
     fun units(s: String): String {
         val c = Lang.code
@@ -156,7 +156,7 @@ object LiveParser {
         }
     }
 
-    /** «15:52 · 9 мин» из любых подписей уведомления. */
+    /** "15:52 · 9 мин" from any notification labels. */
     internal fun findEta(texts: List<String>): String? {
         val joined = texts.joinToString(" ")
         val time = clock.find(joined)?.value
@@ -171,13 +171,13 @@ object LiveParser {
     )
     private val notInstruction = listOf("по шагам", "по gps", "шаг ")
 
-    /** Подсказка навигатора: «Через 300 м поверните направо на Тверскую», «Держитесь левее», «Съезд 2». */
+    /** Navigator hint: "Через 300 м поверните направо на Тверскую", "Держитесь левее", "Съезд 2". */
     internal fun instructionOf(texts: List<String>): String? = texts.map { it.trim() }.firstOrNull { t ->
         val l = t.lowercase()
         t.length in 6..90 && maneuverWords.any { it in l } && notInstruction.none { it in l }
     }
 
-    /** Куда поворачивать, по тексту подсказки или описанию значка манёвра. */
+    /** Which way to turn, from the hint text or the maneuver icon description. */
     internal fun detectTurn(texts: List<String>): Turn? {
         val t = texts.joinToString(" ").lowercase()
         return when {
@@ -189,14 +189,14 @@ object LiveParser {
         }
     }
 
-    /** Раскладка, которую приложение рисует само: достаём тексты и описания картинок по порядку. */
+    /** A layout the app draws itself: pull out texts and image descriptions in order. */
     @Suppress("DEPRECATION")
-    /** Последняя разобранная раскладка по ключу уведомления и когда её разобрали */
+    /** The last parsed layout by notification key, and when it was parsed */
     private val remoteCache = HashMap<String, Pair<Long, Remote>>()
 
     /**
-     * Навигатор обновляет уведомление каждую секунду, а собрать его раскладку — это создать целое дерево
-     * View. Поэтому разбираем её не чаще раза в 2 секунды, а при погашенном экране берём прошлую.
+     * The navigator updates the notification every second, and building its layout means creating a whole View
+     * tree. So parse it no more than once every 2 seconds, and with the screen off use the previous one.
      */
     private fun remoteFor(context: Context, key: String, n: Notification): Remote {
         val now = SystemClock.elapsedRealtime()
@@ -236,8 +236,8 @@ object LiveParser {
 }
 
 /**
- * Что остров видит в уведомлениях навигаторов, такси и доставки. Если у вашего приложения расстояние
- * не показывается, этот текст (О приложении → Диагностика навигации) покажет, что именно оно присылает.
+ * What the island sees in navigator, taxi and delivery notifications. If your app's distance
+ * is not shown, this text (About -> Navigation diagnostics) will show what exactly it sends.
  */
 object LiveDebug {
     val dumps = MutableStateFlow<Map<String, String>>(emptyMap())
@@ -268,12 +268,12 @@ object LiveDebug {
         put(sbn.key, body)
     }
 
-    /** Уведомление убрали — его разбор больше не нужен. */
+    /** The notification was removed: its parse result is no longer needed. */
     fun forget(key: String) {
         if (key in dumps.value) dumps.value = dumps.value - key
     }
 
-    /** Храним только последние записи: приложения доставки присылают много обычных уведомлений. */
+    /** Keep only the latest entries: delivery apps send many ordinary notifications. */
     private fun put(key: String, body: String) {
         val next = (dumps.value - key) + (key to body)
         dumps.value = if (next.size > MAX_DUMPS) next.entries.drop(next.size - MAX_DUMPS).associate { it.toPair() } else next
@@ -281,7 +281,7 @@ object LiveDebug {
 
     private const val MAX_DUMPS = 20
 
-    /** Подписи экрана навигатора — чтобы было видно, откуда остров берёт расстояние. */
+    /** Navigator screen labels, so it is visible where the island gets the distance from. */
     fun recordScreen(context: Context, pkg: String, items: List<ScreenItem>, r: NavScreenParser.Result) {
         val body = buildString {
             appendLine(tr("Экран: ", "Screen: ") + NotificationParser.appLabel(context, pkg) + " (" + pkg + ")")

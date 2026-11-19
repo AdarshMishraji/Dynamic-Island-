@@ -37,8 +37,8 @@ import com.akira.island.data.SettingsRepo
 import com.akira.island.island.Ios
 
 /**
- * Уведомления приложений в острове, как баннеры на iPhone: сообщения из Telegram,
- * WhatsApp, почта и т. п. Показываются только те, что система и так показала бы всплывающими.
+ * App notifications in the island, like banners on iPhone: messages from Telegram,
+ * WhatsApp, email, etc. Only those that the system would show as popups anyway are shown.
  */
 object Messages {
     private val deduplicator = MessageDeduplicator()
@@ -63,7 +63,7 @@ object Messages {
         if (!s.cardMessages || !s.enabled) return
         val n = sbn.notification ?: return
         val pkg = sbn.packageName
-        // Постоянные, служебные и сводки групп — не сообщения: их не показываем и в диагностику не пишем
+        // Ongoing, service, and group summary notifications are not messages: do not show them and do not log them to diagnostics
         if (sbn.isOngoing) return
         if (n.flags and Notification.FLAG_GROUP_SUMMARY != 0) return
         if (n.flags and Notification.FLAG_FOREGROUND_SERVICE != 0) return
@@ -71,11 +71,11 @@ object Messages {
         val rule = s.msgAppRules[pkg]
         if (rule != AppRule.ALWAYS && n.category in skipCategories) return NotifDebug.add(pkg, trf("Служебное: {0}", "Service notification: {0}", n.category))
         if (rule == AppRule.NEVER) return NotifDebug.add(pkg, tr("Выключено для приложения", "Turned off for this app"))
-        // Пока открыто само приложение, оно и так показывает сообщение — если не попросили показывать и тогда
+        // While the app itself is open, it shows the message anyway, unless asked to show it then too
         if (!s.msgInApp && IslandBus.foregroundPackage.value == pkg) return NotifDebug.add(pkg, tr("Приложение открыто", "The app is open"))
 
-        // Тихие и свёрнутые не показываем — как и система, если не попросили («Тихие уведомления» или
-        // «Всегда» для приложения). Заглушённые «Не беспокоить» не показываем никогда
+        // Silent and collapsed ones are not shown, like the system, unless asked ("Silent notifications" or
+        // "Always" for the app). Ones muted by Do Not Disturb are never shown
         val ranking = NotificationListenerService.Ranking()
         val ranked = runCatching { service.currentRanking?.getRanking(sbn.key, ranking) == true }.getOrDefault(false)
         if (ranked) {
@@ -86,8 +86,8 @@ object Messages {
             if (!ranking.matchesInterruptionFilter()) return NotifDebug.add(pkg, tr("«Не беспокоить»", "Do Not Disturb"))
         }
 
-        // Экран блокировки: как в шторке — уведомления там скрыты, «секретные» не показываются,
-        // у остальных без разрешения показывать содержимое видно только название приложения
+        // Lock screen: as in the shade, notifications are hidden there, "secret" ones are not shown,
+        // and for the rest, without permission to show content, only the app name is visible
         val locked = IslandBus.locked.value
         if (locked && !Lockscreen.showsNotifications(service)) {
             return NotifDebug.add(pkg, tr("На экране блокировки уведомления выключены", "Notifications are off on the lock screen"))
@@ -104,7 +104,7 @@ object Messages {
             (secret || visibility == Notification.VISIBILITY_PRIVATE && !Lockscreen.showsPrivate(service))
 
         val ex = n.extras ?: return
-        // Мессенджер дописал в уведомление ваш же ответ — это не новое сообщение
+        // The messenger appended your own reply to the notification: this is not a new message
         if (ownLastMessage(ex)) return NotifDebug.add(pkg, tr("Ваше же сообщение", "Your own message"))
         val title = (ex.getCharSequence(Notification.EXTRA_CONVERSATION_TITLE)
             ?: ex.getCharSequence(Notification.EXTRA_TITLE))?.toString()?.trim().orEmpty()
@@ -148,7 +148,7 @@ object Messages {
             appIcon = NotificationParser.icon(service, sbn.packageName),
             intent = n.contentIntent,
             actions = actions,
-            // Разбор палитры нужен только для цвета кнопок «Из аватара»
+            // Palette parsing is needed only for the "From avatar" button color
             accent = if (s.accentMode == AccentMode.ADAPTIVE) accentOf(avatar ?: NotificationParser.icon(service, sbn.packageName)) else null,
             history = history(ex),
             sensitive = sensitive,
@@ -161,26 +161,26 @@ object Messages {
                 tint = Tints.Blue,
                 style = NoticeStyle.MESSAGE,
                 message = message,
-                // Текст читать дольше, чем короткое событие, а с кнопками — ещё дольше: нужно успеть нажать
+                // Reading text takes longer than a short event, and with buttons even longer: there must be time to tap
                 extraMs = if (actions.isEmpty()) 2_000 else 4_500,
             ),
         )
         NotifDebug.add(pkg, tr("Показано", "Shown"))
-        // «Сохранённая история»: только на этом телефоне, и не то, что скрыто на экране блокировки
+        // "Saved history": only on this phone, and not what is hidden on the lock screen
         if (s.keepHistory && !sensitive) {
             kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
                 com.akira.island.data.NotificationHistory.add(service, pkg, appName, title.ifEmpty { appName }, text)
             }
         }
-        // «История уведомлений»: после плашки сообщение ждёт в острове
+        // "Notification history": after the banner, the message waits in the island
         if (s.historyMinutes != 0) Inbox.add(message, title.ifEmpty { appName })
-        // Для «Системных плашек»: какой мессенджер и всплывает ли у него ещё своя плашка поверх острова
+        // For "System banners": which messenger it is and whether it also pops up its own banner over the island
         SystemBanners.onMessage(sbn.packageName, n.channelId, popsUp = !ranked || ranking.importance >= NotificationManager.IMPORTANCE_HIGH)
     }
 
     /**
-     * Кнопки из уведомления, как в шторке: сначала «Ответить» (с полем ввода), потом ещё одна —
-     * «Пометить прочитанным» и т. п. Больше двух в острове не помещается.
+     * Buttons from the notification, as in the shade: first "Reply" (with an input field), then one more:
+     * "Mark as read" and the like. More than two do not fit in the island.
      */
     private fun buttons(n: Notification): List<MsgAction> {
         val all = n.actions?.mapNotNull { a ->
@@ -210,7 +210,7 @@ object Messages {
         scaled.asImageBitmap()
     }.getOrNull()
 
-    /** Все сообщения переписки для списка под карточкой: у групп с именем отправителя. */
+    /** All messages of the conversation for the list under the card: for groups with the sender's name. */
     private fun history(ex: Bundle): List<String> {
         @Suppress("DEPRECATION")
         val arr: Array<Parcelable> = ex.getParcelableArray(Notification.EXTRA_MESSAGES) ?: return emptyList()
@@ -225,7 +225,7 @@ object Messages {
         }.takeLast(25)
     }
 
-    /** Яркий цвет аватара или значка приложения — читается на чёрном и подходит для кнопок. */
+    /** A bright color of the avatar or app icon: readable on black and suitable for buttons. */
     private fun accentOf(image: ImageBitmap?): Color? {
         image ?: return null
         return runCatching {
@@ -233,12 +233,12 @@ object Messages {
             val rgb = palette.getVibrantColor(palette.getLightVibrantColor(palette.getDominantColor(0)))
             if (rgb == 0) return null
             val c = Color(rgb)
-            // Тёмный цвет на чёрной капсуле не виден — подсвечиваем
+            // A dark color is not visible on the black capsule: highlight it
             if (c.luminance() < 0.4f) lerp(c, Color.White, 0.45f) else c
         }.getOrNull()
     }
 
-    /** У переписок (MessagingStyle) берём последнее сообщение с именем отправителя в группах. */
+    /** For conversations (MessagingStyle) take the last message with the sender's name in groups. */
     private fun lastMessage(ex: Bundle): String? {
         @Suppress("DEPRECATION")
         val arr: Array<Parcelable>? = ex.getParcelableArray(Notification.EXTRA_MESSAGES)
@@ -261,7 +261,7 @@ object Messages {
         return Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && sentByMe(last, ex)
     }
 
-    /** Отправитель сообщения [message] — тот же человек, что EXTRA_MESSAGING_PERSON уведомления. */
+    /** The sender of [message] is the same person as the notification's EXTRA_MESSAGING_PERSON. */
     @RequiresApi(Build.VERSION_CODES.P)
     private fun sentByMe(message: Bundle, ex: Bundle): Boolean {
         @Suppress("DEPRECATION")
@@ -278,27 +278,27 @@ object Messages {
     }
 
     /**
-     * Уведомление убрали (прочитали в приложении или смахнули в шторке). Если его плашку держат дольше обычного
-     * («Показ уведомлений» больше авто или «пока не смахнёте») — она уходит тоже.
+     * The notification was removed (read in the app or swiped away in the shade). If its banner is held longer than usual
+     * ("Notification display" longer than auto or "until you swipe"), it goes away too.
      */
     fun onRemoved(key: String) {
         IslandBus.removeMessage(key)
     }
 }
 
-/** Настройки экрана блокировки, как их понимает шторка. */
+/** Lock screen settings, as the shade understands them. */
 private object Lockscreen {
-    /** Есть ли PIN-код, графический ключ или пароль: без них система содержимое не прячет. */
+    /** Whether a PIN, pattern, or password is set: without them the system does not hide the content. */
     fun isSecure(context: Context): Boolean =
         context.getSystemService(KeyguardManager::class.java)?.isDeviceSecure == true
 
-    /** «Уведомления на заблокированном экране» не выключены. */
+    /** "Notifications on the lock screen" is not turned off. */
     fun showsNotifications(context: Context): Boolean = secureInt(context, "lock_screen_show_notifications", 1) != 0
 
-    /** Разрешено показывать содержимое уведомлений; если настройку не прочитать — считаем, что нет. */
+    /** Showing notification content is allowed; if the setting cannot be read, assume it is not. */
     fun showsPrivate(context: Context): Boolean = secureInt(context, "lock_screen_allow_private_notifications", 0) != 0
 
-    /** Настройку ни разу не меняли — у системы она включена; прочитать нельзя — [unreadable]. */
+    /** The setting was never changed: it is on in the system; if it cannot be read, [unreadable]. */
     private fun secureInt(context: Context, name: String, unreadable: Int): Int = try {
         Settings.Secure.getInt(context.contentResolver, name)
     } catch (_: Settings.SettingNotFoundException) {

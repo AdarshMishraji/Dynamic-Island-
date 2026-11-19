@@ -16,34 +16,34 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 
 /**
- * Общее состояние острова. Службы пишут сюда, капсула и приложение читают.
- * Всё живёт в одном процессе, поэтому хватает обычного синглтона.
+ * Shared island state. Services write here; the capsule and app read.
+ * Everything lives in one process, so a plain singleton is enough.
  */
 object IslandBus {
     val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
     val serviceRunning = MutableStateFlow(false)
     val expanded = MutableStateFlow(false)
-    /** id активности, которую пользователь выбрал (например, кликом по пузырю) */
+    /** id of the activity the user picked (e.g. by tapping a bubble) */
     val focus = MutableStateFlow<String?>(null)
 
     val media = MutableStateFlow<MediaInfo?>(null)
     val lyrics = MutableStateFlow<Lyrics?>(null)
-    /** Как идёт поиск текста для трека с ключом first */
+    /** How the lyrics search for the track with key first is going */
     val lyricsStatus = MutableStateFlow<Pair<String, LyricsStatus>?>(null)
     val progress = MutableStateFlow<Map<String, ProgressInfo>>(emptyMap())
     val chrono = MutableStateFlow<Map<String, ChronoInfo>>(emptyMap())
     val calls = MutableStateFlow<Map<String, CallInfo>>(emptyMap())
-    /** Входящий звонок смахнули — в острове его нет, пока он не закончится или не станет разговором */
+    /** Incoming call swiped away: it isn't in the island until it ends or becomes a conversation */
     val callHidden = MutableStateFlow(false)
-    /** Что может сделать только сама служба спец. возможностей; без службы команда теряется */
+    /** What only the accessibility service itself can do; without the service the command is lost */
     val commands = MutableSharedFlow<ServiceCommand>(extraBufferCapacity = 4)
     val live = MutableStateFlow<Map<String, LiveInfo>>(emptyMap())
-    /** Экран оплаты телефоном на виду — «Оплата · К терминалу», пока не заплатили или не ушли (PayMonitor) */
+    /** Phone payment screen is in view: "Payment · To terminal", until paid or left (PayMonitor) */
     val payReady = MutableStateFlow<PayReady?>(null)
-    /** Ближайший будильник любого приложения «Часы» */
+    /** Next alarm from any "Clock" app */
     val nextAlarm = MutableStateFlow<AlarmInfo?>(null)
-    /** Звонящие будильники и таймеры других приложений («Часы»): ключи их уведомлений */
+    /** Ringing alarms and timers of other apps ("Clock"): their notification keys */
     val ringingAlarms = MutableStateFlow<Set<String>>(emptySet())
     val torch = MutableStateFlow(TorchState())
     val timer = MutableStateFlow<TimerState?>(null)
@@ -51,43 +51,43 @@ object IslandBus {
     val notice = MutableStateFlow<Notice?>(null)
     /** User expanded the compact notification to read it inside the island. */
     val messageDetail = MutableStateFlow(false)
-    /** «История уведомлений»: показанные сообщения, которые ещё ждут в острове */
+    /** "Notification history": shown messages still waiting in the island */
     val inbox = MutableStateFlow<List<InboxItem>>(emptyList())
-    /** Идёт ввод ответа на уведомление: окну острова нужен фокус, чтобы показать клавиатуру */
+    /** A reply to a notification is being typed: the island window needs focus to show the keyboard */
     val reply = MutableStateFlow<ReplyState?>(null)
-    /** Обе оси наклона от -1 до 1, в координатах острова. */
+    /** Both tilt axes from -1 to 1, in island coordinates. */
     val glassTilt = MutableStateFlow(GlassTilt.Zero)
-    /** До какого момента (elapsedRealtime) показывать пример активности — пока двигают ползунок ширины */
+    /** Until when (elapsedRealtime) to show a sample activity: while the width slider is being dragged */
     val widthPreviewUntil = MutableStateFlow(0L)
-    /** Человек читает или отвечает — уведомление не убирается по таймеру */
+    /** The person is reading or replying: the notification isn't removed by the timer */
     val noticeHold = MutableStateFlow(false)
     val battery = MutableStateFlow(BatteryInfo())
-    /** Режим звука (AudioManager.RINGER_MODE_*) и «Не беспокоить» — для кнопок раскрытого острова */
+    /** Ringer mode (AudioManager.RINGER_MODE_*) and "Do Not Disturb": for the expanded island buttons */
     val ringer = MutableStateFlow(2)
     val dnd = MutableStateFlow(false)
     val foregroundPackage = MutableStateFlow<String?>(null)
     /** Expanded notification shade/quick settings detected by the accessibility service. */
     val shadeOpen = MutableStateFlow(false)
     val landscape = MutableStateFlow(false)
-    /** Поворот экрана для острова «У камеры»: −90 — камера слева, 90 — справа, 0 — портрет */
+    /** Screen rotation for the "Near camera" island: −90 camera on the left, 90 on the right, 0 portrait */
     val displayRotation = MutableStateFlow(0)
-    /** На сколько градусов повёрнут остров в своём окне сейчас (0 — как обычно, сверху) */
+    /** How many degrees the island is currently rotated in its window (0 is normal, at the top) */
     val contentRotation = MutableStateFlow(0)
-    /** Вне часов «По расписанию» остров не показывается */
+    /** Outside the "Scheduled" hours the island isn't shown */
     val offSchedule = MutableStateFlow(false)
-    /** Экран включён. Пока он погашен, датчик наклона и чтение экрана навигатора не работают — бережём батарею */
+    /** Screen is on. While it's off, the tilt sensor and navigator screen reading don't work, to save battery */
     val screenOn = MutableStateFlow(true)
-    /** Включено энергосбережение Android — с «Экономией заряда» остров без живых эффектов */
+    /** Android power saving is on: with "Battery saver" the island has no live effects */
     val powerSave = MutableStateFlow(false)
-    /** Телефон заблокирован PIN-кодом, графическим ключом или паролем: тексты сообщений и кнопки скрыты */
+    /** Phone is locked with a PIN, pattern or password: message texts and buttons are hidden */
     val locked = MutableStateFlow(false)
-    /** На экране — экран блокировки (с PIN-кодом или без): в капсуле замок, если он включён в «Событиях» */
+    /** The lock screen is showing (with or without PIN): the capsule shows a lock if enabled in "Events" */
     val keyguard = MutableStateFlow(false)
-    /** Открыт экран «Размер и положение»: остров красный, чтобы подогнать его под камеру */
+    /** The "Size and position" screen is open: the island is red so you can fit it to the camera */
     val calibrating = MutableStateFlow(false)
-    /** Играет та самая песня — остров празднует (пасхалка, Egg.kt) */
+    /** That particular song is playing: the island celebrates (easter egg, Egg.kt) */
     val egg = MutableStateFlow(false)
-    /** Последнее касание раскрытого острова — чтобы не сворачивать его из-под пальца */
+    /** Last touch of the expanded island: so it isn't collapsed from under a finger */
     @Volatile
     var lastTouch = 0L
 
@@ -106,7 +106,7 @@ object IslandBus {
                 fun removed() = key != null && (messageRevisions[key] ?: 0L) != queued.revision
                 if (removed()) continue
                 val s = SettingsRepo.current
-                // «Задержка появления»; подтверждения того, что вы только что сделали (отправлено, оплачено), — сразу
+                // "Appearance delay"; confirmations of what you just did (sent, paid) appear immediately
                 if (s.noticeDelayMs > 0 && n.style != NoticeStyle.SENT && n.style != NoticeStyle.PAY_DONE) delay(s.noticeDelayMs.toLong())
                 if (removed()) continue
                 messageDetail.value = false
@@ -114,26 +114,26 @@ object IslandBus {
                 notice.value = n
                 val message = n.style == NoticeStyle.MESSAGE
                 val duration = if (message && s.messageSeconds > 0) s.messageSeconds * 1000L else s.noticeDurationMs + n.extraMs
-                // Уведомление уходит по времени или раньше, если его смахнули кликом
+                // A notification leaves on time, or earlier if swiped away by a click
                 withTimeoutOrNull(duration) { notice.first { it?.id != n.id } }
-                // «Пока не смахнёте»: плашка ждёт, пока её не уберут; пришло следующее событие — уступает ему
+                // "Until swiped": the banner waits until dismissed; when the next event arrives, it yields to it
                 if (message && s.messageSeconds < 0 && notice.value?.id == n.id && waitingIsEmpty()) {
                     val seen = posted.value
                     combine(notice, posted) { cur, p -> cur?.id != n.id || p != seen }.first { it }
                 }
-                // Пока отвечают или листают переписку, карточка остаётся; потом ещё чуть-чуть
+                // While someone is replying or scrolling the conversation, the card stays; then a little longer
                 if (notice.value?.id == n.id && noticeHold.value) {
                     combine(notice, noticeHold) { current, holding -> current?.id != n.id || !holding }.first { it }
                     if (notice.value?.id == n.id) withTimeoutOrNull(1500) { notice.first { it?.id != n.id } }
                 }
                 if (notice.value?.id == n.id) notice.value = null
-                // Короткая пауза между плашками, чтобы они не слипались, — но без заметного ожидания
+                // A short pause between banners so they don't merge, but without a noticeable wait
                 delay(110)
             }
         }
     }
 
-    /** Сколько событий отправлено в очередь — по нему плашка «пока не смахнёте» узнаёт, что пришло следующее */
+    /** How many events have been sent to the queue: the "until swiped" banner uses it to know the next one arrived */
     private val posted = MutableStateFlow(0)
 
     fun post(n: Notice) {
@@ -156,5 +156,5 @@ object IslandBus {
     private fun waitingIsEmpty(): Boolean = queue.isEmpty
 }
 
-/** Команды службе: скриншот без острова, блокировка, выключение и прокрутка по явному жесту. */
+/** Commands to the service: screenshot without the island, lock, power off and scroll on an explicit gesture. */
 enum class ServiceCommand { SCREENSHOT, LOCK, TURN_OFF, SCROLL_TOP, QUICK_SETTINGS, SHADE }

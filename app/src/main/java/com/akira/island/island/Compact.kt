@@ -135,26 +135,26 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.foundation.ScrollState
 import com.akira.island.service.NotifListener
 
-/** Цифры одной ширины, чтобы время не «прыгало». Шрифт и толщина — из «Оформления → Шрифт» */
+/** Digits of equal width so the time does not "jump". Font and weight come from "Appearance → Font" */
 val Digits: TextStyle
     get() = TextStyle(fontFamily = IslandType.family, fontFeatureSettings = "tnum", fontWeight = FontWeight.SemiBold.island)
 
-/** Высота капсулы, когда в ней что-то есть: чуть толще пустой, чтобы не выглядеть тонкой полоской. */
+/** Capsule height when it has something in it: slightly thicker than empty, so it does not look like a thin strip. */
 fun activeHeight(s: IslandSettings): Dp = (s.height + s.activeExtra).dp
 
-/** Свободное место над камерой посередине — содержимое туда не заходит. */
+/** Free space above the camera in the middle: content does not go there. */
 fun compactGap(s: IslandSettings): Dp = s.cameraGap.dp.coerceAtLeast(8.dp)
 
-/** Самое широкое содержимое одной боковой части. */
+/** The widest content of one side part. */
 fun sideMax(s: IslandSettings): Dp = activeHeight(s) * 2.6f
 
-/** Высота события: заметно выше свёрнутого острова, как у раскрытых уведомлений iPhone (62 при высоте 37). */
+/** Event height: noticeably taller than the collapsed island, like expanded iPhone notifications (62 at height 37). */
 fun noticeHeight(s: IslandSettings): Dp = (s.height.dp * 1.68f).coerceAtLeast(56.dp)
 
-/** Высота входящего звонка: аватар, имя и две большие кнопки в одну строку (84 при высоте 37). */
+/** Incoming call height: avatar, name and two large buttons in one row (84 at height 37). */
 fun callHeight(s: IslandSettings): Dp = (s.height.dp * 2.27f).coerceAtLeast(76.dp)
 
-/** Ниже этой линии камера уже не мешает тексту — сюда ставится содержимое раскрытых карточек. */
+/** Below this line the camera no longer gets in the way of text: expanded card content goes here. */
 fun cameraInset(s: IslandSettings): Dp = s.height.dp * 0.5f + 11.5.dp
 
 @Composable
@@ -169,7 +169,7 @@ private fun CompactContentBody(act: Act, s: IslandSettings, wideWidth: Dp) {
     val side = sideMax(s)
     val icon = h * 0.5f
     when (act) {
-        // Пустая капсула: при желании часы слева от камеры, актуальный заряд справа.
+        // Empty capsule: optionally the clock to the left of the camera, the current charge on the right.
         is Act.Idle -> {
             val keyguard by IslandBus.keyguard.collectAsState()
             val realBattery by IslandBus.battery.collectAsState()
@@ -252,7 +252,7 @@ private fun CompactContentBody(act: Act, s: IslandSettings, wideWidth: Dp) {
 
         is Act.ChronoA -> {
             val now = rememberWallNow(1_000, active = act.c.pausedMs == null)
-            // Запись экрана — красная, как на iPhone; таймеры и секундомеры Часов — оранжевые
+            // Screen recording is red, like on iPhone; Clock timers and stopwatches are orange
             val recording = act.c.isRecording
             val tint = if (recording) Tints.Red else Tints.Orange
             CompactRow(h, gap, side * 1.4f,
@@ -298,7 +298,7 @@ private fun CompactContentBody(act: Act, s: IslandSettings, wideWidth: Dp) {
                     if (act.p.indeterminate) {
                         Icon(transferIcon(act.p.kind), null, tint = tint, modifier = Modifier.size(icon))
                     } else {
-                        // Кольцо доезжает до нового процента, а не прыгает
+                        // The ring moves up to the new percentage instead of jumping
                         val fraction by animateFloatAsState(act.p.fraction, tween(450, easing = FastOutSlowInEasing), label = "progress")
                         ProgressRing(fraction, tint, Modifier.size(h * 0.52f), stroke = 3.dp)
                     }
@@ -325,7 +325,7 @@ private fun CompactContentBody(act: Act, s: IslandSettings, wideWidth: Dp) {
 
         is Act.PayA -> PayReady(tr("Оплата", "Pay"), tr("К терминалу", "Hold near reader"), act.p.icon, s, wideWidth)
 
-        // «История уведомлений»: значки приложений, от которых что-то ждёт, и сколько всего
+        // "Notification history": icons of apps with something waiting, and the total count
         is Act.InboxA -> CompactRow(h, gap, side * 1.4f,
             left = { AppStack(act.items, h * 0.56f, islandFill(s)) },
             right = { TimeText("${act.items.size}", Tints.Blue, 16) },
@@ -342,10 +342,10 @@ private fun TimeText(text: String, color: Color, size: Int = 16, weight: FontWei
     Text(text, color = color, fontSize = size.sp, style = Digits.copy(fontWeight = weight), maxLines = 1, softWrap = false)
 }
 
-/** Мягко светящаяся точка — признак того, что фонарик горит. Свечение только перерисовывается. */
+/** A softly glowing dot shows that the flashlight is on. The glow is only redrawn. */
 @Composable
 private fun GlowDot(color: Color, size: Dp, animate: Boolean) {
-    // Фонарик и навигатор горят долго — свечение идёт с частотой из «Эффектов» (по умолчанию 60 кадров), а не до 120
+    // The flashlight and navigator stay on for a long time, so the glow runs at the rate from "Effects" (60 frames by default), not up to 120
     val time = rememberFxClock(animate)
     Canvas(Modifier.size(size * 1.8f)) {
         val k = if (animate) 0.55f + 0.45f * pingPong(time.value, 1100) else 1f
@@ -356,11 +356,11 @@ private fun GlowDot(color: Color, size: Dp, animate: Boolean) {
 }
 
 /**
- * Левая и правая части свёрнутой капсулы, как на iPhone: значок у левого края, текст или время
- * у правого, посередине камера. Капсула шире пустой на «Ширину с активностью»; если содержимое
- * не помещается, оно чуть уменьшается, а если и так длиннее — капсула расширяется ровно настолько,
- * чтобы не заходить на камеру.
- * Отступ от края равен отступу сверху — содержимое вписано в скругление, как требует Apple.
+ * Left and right parts of the collapsed capsule, like on iPhone: icon at the left edge, text or time
+ * at the right, camera in the middle. The capsule is wider than empty by "Width with activity"; if the content
+ * does not fit, it shrinks a little, and if it is still too long, the capsule widens just enough
+ * to avoid covering the camera.
+ * The edge inset equals the top inset: content fits within the rounded corner, as Apple requires.
  */
 @Composable
 fun CompactRow(
@@ -371,7 +371,7 @@ fun CompactRow(
     right: @Composable BoxScope.() -> Unit,
     shrink: Boolean = true,
 ) {
-    // Капсула с активностью шире спокойной на «Ширину с активностью»; длинный текст раздвинет её сам
+    // A capsule with activity is wider than a calm one by "Width with activity"; long text will widen it by itself
     val st = SettingsRepo.state.collectAsState().value
     val baseWidth = st.width.dp + st.activeWidth.dp
     val density = LocalDensity.current
@@ -384,8 +384,8 @@ fun CompactRow(
         var r = subcompose("r") { Box(contentAlignment = Alignment.Center, content = right) }.first().measure(loose)
         val base = baseWidth.roundToPx()
         val sideNeed = maxOf(l.width, r.width)
-        // В узкой капсуле содержимое сначала уменьшается (до 70%) — как будто нарисовано мельче, —
-        // и только если и так не помещается, капсулу раздвигает
+        // In a narrow capsule the content first shrinks (down to 70%), as if drawn smaller,
+        // and only if it still does not fit does the capsule widen
         val sideRoom = (base - gapPx) / 2 - pad
         val k = if (shrink && sideNeed > sideRoom && sideRoom > 0) (sideRoom.toFloat() / sideNeed).coerceIn(0.7f, 1f) else 1f
         if (k < 1f) {
@@ -411,21 +411,21 @@ private fun MediaCompact(m: MediaInfo, s: IslandSettings) {
     val h = activeHeight(s)
     val art = h * 0.58f
     val egg by IslandBus.egg.collectAsState()
-    // Новый трек: обложка сменяется плавно, цвет эквалайзера перетекает в цвет новой обложки
+    // New track: the cover changes smoothly, the equalizer color blends into the new cover color
     val accent by animateColorAsState(m.accent, tween(400), label = "accent")
     CompactRow(h, compactGap(s), sideMax(s),
         left = { Crossfade(m.art, animationSpec = tween(300), label = "art") { Art(it, art, art * 0.24f) } },
         right = {
-            // Пасхалка: вместо эквалайзера бьётся душа
+            // Easter egg: a soul beats instead of the equalizer
             if (egg) SoulHeart(Modifier.size(h * 0.5f)) else Equalizer(accent, m.playing, s.liveEqualizer, Modifier.size(h * 0.6f, h * 0.42f))
         },
     )
 }
 
 /**
- * Событие как на iPhone. Широкое — остров разворачивается почти на всю ширину экрана:
- * слева значок и подпись, справа состояние, батарейка или кольцо. Пилюля — короткое
- * переключение (режим звука), значок качается. Сообщение — аватар, имя и текст.
+ * Event like on iPhone. Wide: the island expands to almost the full screen width:
+ * icon and label on the left, state, battery or ring on the right. Pill is a short
+ * toggle (sound mode), the icon swings. Message: avatar, name and text.
  */
 @Composable
 private fun NoticeCompact(n: Notice, s: IslandSettings, wideWidth: Dp) {
@@ -450,7 +450,7 @@ private fun NoticeCompact(n: Notice, s: IslandSettings, wideWidth: Dp) {
 
 @Composable
 private fun WideNotice(n: Notice, s: IslandSettings, wideWidth: Dp) {
-    // Значок «выпрыгивает», батарейка и кольцо заполняются — как на iPhone
+    // The icon "jumps out", the battery and ring fill up, like on iPhone
     val pop = remember(n.id) { Animatable(if (s.reduceEffects) 1f else 0.3f) }
     val fill = remember(n.id) { Animatable(if (s.reduceEffects) 1f else 0f) }
     LaunchedEffect(n.id) {
@@ -458,8 +458,8 @@ private fun WideNotice(n: Notice, s: IslandSettings, wideWidth: Dp) {
         fill.animateTo(1f, tween(900, easing = FastOutSlowInEasing))
     }
     val height = noticeHeight(s)
-    // Как в ролике: слева значок и что случилось, справа — значение цветом события и батарейка или кольцо.
-    // У наушников с известным зарядом значение — проценты, иначе — подпись («Подключено»)
+    // As in the video: icon and what happened on the left, the value in the event color and a battery or ring on the right.
+    // For headphones with a known charge the value is a percentage, otherwise a label ("Connected")
     val value = when {
         n.ring != null -> "${(n.ring * 100).toInt()}%"
         else -> n.state ?: n.caption
@@ -471,7 +471,7 @@ private fun WideNotice(n: Notice, s: IslandSettings, wideWidth: Dp) {
         Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
             Icon(n.icon, null, tint = n.tint, modifier = Modifier.size(height * 0.355f).scale(pop.value))
             Spacer(Modifier.width(9.dp))
-            // «Не беспокоить», «Режим полёта» не влезают до камеры — шрифт чуть меньше, а не многоточие
+            // "Do Not Disturb" and "Airplane mode" do not fit before the camera, so the font is a bit smaller instead of an ellipsis
             FitText(n.title, Color.White, 17.sp, 13.sp, FontWeight.SemiBold.island, Modifier.weight(1f, fill = false))
         }
         Spacer(Modifier.width(compactGap(s)))
@@ -493,14 +493,14 @@ private fun WideNotice(n: Notice, s: IslandSettings, wideWidth: Dp) {
     }
 }
 
-/** Пилюля режима звука: значок слева качается, как колокольчик на iPhone, состояние справа. */
+/** Sound mode pill: the icon on the left swings like a bell on iPhone, the state on the right. */
 @Composable
 private fun PillNotice(n: Notice, s: IslandSettings) {
     val h = activeHeight(s)
     val swing = remember(n.id) { Animatable(0f) }
     LaunchedEffect(n.id) {
         if (s.reduceEffects || !s.fxShake) return@LaunchedEffect
-        // Затухающее покачивание: 22° → -16° → 12° → … → 0
+        // Damped swing: 22° → -16° → 12° → … → 0
         var amp = 22f
         repeat(6) {
             swing.animateTo(amp, tween(70))
@@ -523,15 +523,15 @@ private fun PillNotice(n: Notice, s: IslandSettings) {
                 Text(n.state, color = n.tint, fontSize = 16.sp, fontWeight = FontWeight.SemiBold.island, maxLines = 1, softWrap = false)
             }
         },
-        // Как в ролике: подпись в полный размер, пилюля для неё чуть шире
+        // As in the video: the label at full size, the pill a bit wider for it
         shrink = false,
     )
 }
 
 /**
- * Смахнуть уведомление вниз — как лист iOS: тянем карточку вниз, и она уходит. Работает поверх прокрутки —
- * перехватывает движение только от самого верха списка, чтобы чтение длинного сообщения не путалось
- * с удалением. На отпускании за порогом вызывается [onDismiss], иначе карточка возвращается на место.
+ * Swipe a notification down, like an iOS sheet: drag the card down and it goes away. Works on top of scrolling:
+ * it only takes over the gesture from the very top of the list, so reading a long message is not confused
+ * with dismissing. On release past the threshold [onDismiss] is called, otherwise the card returns to its place.
  */
 @Composable
 private fun Modifier.swipeDownToDismiss(
@@ -579,11 +579,11 @@ private fun Modifier.swipeDownToDismiss(
 }
 
 /**
- * Уведомление приложения — как развёрнутый остров iPhone, но по меркам всплывающего уведомления Android:
- * та же ширина (по 16 dp от краёв), аватар 40 dp, имя 15 sp, текст 14 sp, кнопки 14 sp. Сверху, по бокам
- * от камеры, — значок и название приложения и «сейчас»; само уведомление начинается под строкой
- * состояния, там же, где системное. Ниже — кнопки из уведомления («Ответить», «Пометить прочитанным»).
- * Все размеры в sp растут вместе с размером шрифта Android, ширина и отступы — с настройками острова.
+ * App notification: like the expanded iPhone island, but sized like an Android heads-up notification:
+ * the same width (16 dp from the edges), avatar 40 dp, name 15 sp, text 14 sp, buttons 14 sp. At the top, on both sides
+ * of the camera, are the app icon and name and "now"; the notification itself starts below the status
+ * bar, at the same place as the system one. Below are the buttons from the notification ("Reply", "Mark as read").
+ * All sp sizes grow with the Android font size; width and insets follow the island settings.
  */
 @Composable
 @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
@@ -593,7 +593,7 @@ internal fun MessageCard(n: Notice, m: AppMessage, s: IslandSettings, @Suppress(
     val iconSize = 40.dp
     val reply by IslandBus.reply.collectAsState()
     val locked by IslandBus.locked.collectAsState()
-    // На заблокированном телефоне — как в шторке: без кнопок, а скрытые уведомления без имени и текста
+    // On a locked phone, like the shade: no buttons, and hidden notifications have no name or text
     val hidden = locked && m.sensitive
     val iconPosition = s.notificationIconPosition
     val showIcon = s.messageIconMode != MessageIconMode.NONE
@@ -605,12 +605,12 @@ internal fun MessageCard(n: Notice, m: AppMessage, s: IslandSettings, @Suppress(
     val scrollState = rememberScrollState()
     val dismissible = !locked && NotifListener.canDismiss(m.key)
 
-    // Пока отвечают или листают переписку, плашка не уходит по таймеру
+    // While replying or scrolling through a conversation, the banner does not leave on a timer
     DisposableEffect(open, replyAction != null, detail) {
         if (!preview) IslandBus.noticeHold.value = open || replyAction != null || detail
         onDispose { if (!preview) IslandBus.noticeHold.value = false }
     }
-    // Плашка ушла — ввод закрывается, окну возвращается «неактивный» режим
+    // Banner gone: the input closes and the window returns to "not focusable" mode
     DisposableEffect(n.id) {
         onDispose { if (!preview && IslandBus.reply.value?.noticeId == n.id) IslandBus.reply.value = null }
     }
@@ -631,7 +631,7 @@ internal fun MessageCard(n: Notice, m: AppMessage, s: IslandSettings, @Suppress(
             .then(if (detail) Modifier.verticalScroll(scrollState) else Modifier)
             .padding(bottom = 12.dp),
     ) {
-        // Шапка на уровне камеры: слева приложение, справа время — как боковые части острова iPhone
+        // Header at camera level: app on the left, time on the right, like the side parts of the iPhone island
         Row(
             Modifier.fillMaxWidth().height(s.height.dp).padding(horizontal = 18.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -643,7 +643,7 @@ internal fun MessageCard(n: Notice, m: AppMessage, s: IslandSettings, @Suppress(
                 Text(tr("сейчас", "now"), color = dim, fontSize = 12.sp, maxLines = 1, softWrap = false)
                 Spacer(Modifier.width(4.dp))
                 if (s.messageIconMode != MessageIconMode.NONE) Icon(Ios.bell, null, tint = dim, modifier = Modifier.size(12.dp))
-                // Кнопка смахнуть/закрыть уведомление — сразу в шапке, чтобы длинное сообщение не заслоняло экран
+                // The swipe/dismiss notification button is right in the header, so a long message does not cover the screen
                 if (detail && dismissible) {
                     Spacer(Modifier.width(8.dp))
                     RoundButton(Ios.close, size = 20.dp, iconScale = 0.5f, bg = Color.White.copy(alpha = 0.12f)) {
@@ -653,7 +653,7 @@ internal fun MessageCard(n: Notice, m: AppMessage, s: IslandSettings, @Suppress(
             }
         }
         Spacer(Modifier.height((messageTop(s) - s.height.dp).coerceAtLeast(4.dp)))
-        // Ниже шапки — крупнее или мельче по «Размеру содержимого»; шапка у камеры остаётся как есть
+        // Below the header it is larger or smaller per "Content size"; the header at the camera stays as is
         Scaled(s.contentScale) {
             Column {
                 if (showIcon && iconPosition == MessageIconPosition.CENTER) {
@@ -702,7 +702,7 @@ internal fun MessageCard(n: Notice, m: AppMessage, s: IslandSettings, @Suppress(
                         NotifIcon(iconMessage, n, iconSize, Color(s.color))
                     }
                 }
-                // Картинка из уведомления: сначала небольшой предпросмотр, по нажатию на карточку — крупнее
+                // Image from the notification: a small preview first, larger when the card is tapped
                 if (!hidden && m.picture != null) {
                     Image(
                         m.picture, null,
@@ -712,7 +712,7 @@ internal fun MessageCard(n: Notice, m: AppMessage, s: IslandSettings, @Suppress(
                     )
                 }
                 if (replyAction != null) {
-                    // Строка ответа стоит под текстом, как кнопки, — на одной линии с ним
+                    // The reply row sits below the text, like the buttons, not on the same line as it
                     Box(Modifier.padding(start = 16.dp + (if (showIcon && iconPosition == MessageIconPosition.LEFT) iconSize + 12.dp else 0.dp), end = 16.dp)) {
                         ReplyField(replyAction, accent, draftKey = m.key) { text ->
                             if (text.isBlank()) return@ReplyField
@@ -720,7 +720,7 @@ internal fun MessageCard(n: Notice, m: AppMessage, s: IslandSettings, @Suppress(
                                 com.akira.island.core.ReplyDrafts.clear(m.key)
                                 IslandBus.reply.value = null
                                 IslandBus.notice.value = null
-                                // Как в ролике: на миг «Отправлено» с галочкой и кому
+                                // As in the video: for a moment "Sent" with a checkmark and the recipient
                                 IslandBus.post(
                                     Notice(
                                         title = tr("Отправлено", "Sent"),
@@ -732,7 +732,7 @@ internal fun MessageCard(n: Notice, m: AppMessage, s: IslandSettings, @Suppress(
                                     ),
                                 )
                             } else {
-                                // Поле остаётся открытым с текстом — можно попробовать ещё раз или ответить в приложении
+                                // The field stays open with the text: you can try again or reply in the app
                                 Toast.makeText(context, tr("Не удалось отправить ответ", "Couldn't send the reply"), Toast.LENGTH_SHORT).show()
                             }
                         }
@@ -743,7 +743,7 @@ internal fun MessageCard(n: Notice, m: AppMessage, s: IslandSettings, @Suppress(
                         TextAction(tr("Пометить прочитанным", "Mark as read"), accent) {}
                     }
                 } else if (m.actions.isNotEmpty() && !locked) {
-                    // Полные подписи; при крупном шрифте следующая кнопка переходит на новую строку.
+                    // Full labels; with a large font the next button wraps to a new line.
                     FlowRow(
                         Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(top = 4.dp),
                         horizontalArrangement = Arrangement.spacedBy(18.dp),
@@ -766,8 +766,8 @@ internal fun MessageCard(n: Notice, m: AppMessage, s: IslandSettings, @Suppress(
 }
 
 /**
- * Уведомление пилюлей («Вид уведомлений → Пилюля»): у камеры слева аватар и кто пишет, справа приложение,
- * под ними одна строка текста. Занимает меньше места, чем карточка; нажатие раскрывает сообщение внутри острова.
+ * Pill notification ("Notification style → Pill"): at the camera, avatar and sender on the left, app on the right,
+ * one line of text below them. Takes less space than a card; tapping expands the message inside the island.
  */
 @Composable
 private fun MessagePill(n: Notice, m: AppMessage, s: IslandSettings) {
@@ -823,7 +823,7 @@ private fun MessagePill(n: Notice, m: AppMessage, s: IslandSettings) {
     }
 }
 
-/** Значки приложений внахлёст, новое — сверху и слева; у каждого ободок цвета острова. */
+/** App icons overlap, newest on top and on the left; each has a rim in the island color. */
 @Composable
 private fun AppStack(items: List<InboxItem>, size: Dp, ring: Color) {
     val apps = items.asReversed().distinctBy { it.pkg }.take(3)
@@ -846,8 +846,8 @@ private fun AppStack(items: List<InboxItem>, size: Dp, ring: Color) {
 }
 
 /**
- * Ширина плашки уведомления — как у всплывающего уведомления Android: по 16 dp от краёв экрана;
- * уже — по «Ширине раскрытого острова».
+ * Notification banner width is like an Android heads-up notification: 16 dp from the screen edges;
+ * narrower, per "Expanded island width".
  */
 @Composable
 fun messageWidth(s: IslandSettings): Dp {
@@ -856,8 +856,8 @@ fun messageWidth(s: IslandSettings): Dp {
 }
 
 /**
- * Откуда в плашке начинается само уведомление: под строкой состояния, на той же высоте, что у системного
- * уведомления, — с учётом того, на сколько остров опущен в настройках. Не выше шапки у камеры.
+ * Where the notification itself starts in the banner: below the status bar, at the same height as the system
+ * notification, taking into account how far down the island is set in settings. Not above the header at the camera.
  */
 @Composable
 fun messageTop(s: IslandSettings): Dp {
@@ -865,7 +865,7 @@ fun messageTop(s: IslandSettings): Dp {
     return maxOf(s.height.dp + 6.dp, status + 24.dp - s.topOffset.dp)
 }
 
-/** Высота строки состояния — из ресурсов системы: окну острова отступы строки состояния не приходят. */
+/** Status bar height comes from system resources: the island window does not receive status bar insets. */
 @Composable
 private fun statusBarHeight(): Dp {
     val res = LocalContext.current.resources
@@ -877,7 +877,7 @@ private fun statusBarHeight(): Dp {
     }
 }
 
-/** Круглый аватар (или значок приложения) со значком приложения в углу. */
+/** A round avatar (or app icon) with the app icon in the corner. */
 @Composable
 private fun NotifIcon(m: AppMessage, n: Notice, size: Dp, ring: Color) {
     Box(Modifier.size(size + 4.dp).semantics { contentDescription = tr("Значок уведомления", "Notification icon") }) {
@@ -898,7 +898,7 @@ private fun NotifIcon(m: AppMessage, n: Notice, size: Dp, ring: Color) {
     }
 }
 
-/** Счётчик непрочитанных со стрелкой: нажатие раскрывает всю переписку. */
+/** Unread counter with an arrow: tapping expands the whole conversation. */
 @Composable
 private fun CountPill(count: Int, open: Boolean, accent: Color, onClick: () -> Unit) {
     val ink = onAccent(accent)
@@ -912,7 +912,7 @@ private fun CountPill(count: Int, open: Boolean, accent: Color, onClick: () -> U
     }
 }
 
-/** Кнопка под текстом: просто жирная подпись цвета [accent], чуть тускнеет под пальцем. */
+/** Button under the text: just a bold label in the [accent] color, dims slightly under the finger. */
 @Composable
 private fun TextAction(title: String, accent: Color, modifier: Modifier = Modifier, size: TextUnit = 16.sp, onClick: () -> Unit) {
     val haptic = rememberHaptic()
@@ -936,9 +936,9 @@ private fun TextAction(title: String, accent: Color, modifier: Modifier = Modifi
 }
 
 /**
- * Строка ответа как в ролике и в быстром ответе iOS: поле со скруглением, а справа от него — круглая
- * кнопка со стрелкой вверх цвета [accent]. Окну острова на это время выдаётся фокус (см. IslandService),
- * поэтому клавиатура покажется.
+ * Reply row like in the video and iOS quick reply: a rounded field, and to its right a round
+ * button with an up arrow in the [accent] color. The island window is given focus for this time (see IslandService),
+ * so the keyboard will show.
  */
 @Composable
 private fun ReplyField(action: MsgAction, accent: Color, draftKey: String, onSend: (String) -> Unit) {
@@ -946,7 +946,7 @@ private fun ReplyField(action: MsgAction, accent: Color, draftKey: String, onSen
     val focus = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
     LaunchedEffect(Unit) {
-        // Окно получает фокус не сразу, поэтому просим клавиатуру несколько раз
+        // The window does not get focus right away, so we ask for the keyboard several times
         repeat(3) {
             delay(180)
             runCatching { focus.requestFocus() }
@@ -992,8 +992,8 @@ private fun ReplyField(action: MsgAction, accent: Color, draftKey: String, onSen
 }
 
 /**
- * Оплата, как Apple Pay и как в ролике: слева знак бесконтактной оплаты, дуги которого загораются
- * по очереди, и «Оплата»; справа «К терминалу» и значок банка. Посередине — место под камеру.
+ * Payment, like Apple Pay and the video: on the left the contactless symbol with arcs that light up
+ * one by one, and "Payment"; on the right "To terminal" and a bank icon. The middle is space for the camera.
  */
 @Composable
 private fun PayReady(title: String, caption: String?, appIcon: ImageBitmap?, s: IslandSettings, wideWidth: Dp) {
@@ -1010,7 +1010,7 @@ private fun PayReady(title: String, caption: String?, appIcon: ImageBitmap?, s: 
         Spacer(Modifier.width(compactGap(s)))
         Row(Modifier.weight(1f), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
             if (caption != null) {
-                // «Hold near reader» длиннее «К терминалу» — чуть уменьшается, а не обрезается
+                // "Hold near reader" is longer than "To terminal": it shrinks a little instead of being cut off
                 FitText(caption, Tints.Gray, 14.sp, 11.sp, FontWeight.Normal.island, Modifier.weight(1f, fill = false))
             }
             if (appIcon != null) {
@@ -1021,7 +1021,7 @@ private fun PayReady(title: String, caption: String?, appIcon: ImageBitmap?, s: 
     }
 }
 
-/** Оплата прошла: зелёный круг выпрыгивает, галочка прорисовывается, справа сумма — как «Готово» в Apple Pay. */
+/** Payment done: the green circle springs out, the checkmark is drawn, the amount on the right, like "Done" in Apple Pay. */
 @Composable
 private fun PayDone(n: Notice, s: IslandSettings, wideWidth: Dp) {
     val haptic = rememberHaptic()
@@ -1046,7 +1046,7 @@ private fun PayDone(n: Notice, s: IslandSettings, wideWidth: Dp) {
     }
 }
 
-/** Цвет «живой активности»: навигатор зелёный, такси жёлтое, доставка оранжевая. */
+/** "Live activity" color: navigator green, taxi yellow, delivery orange. */
 fun liveTint(kind: LiveKind): Color = when (kind) {
     LiveKind.NAV -> Tints.Green
     LiveKind.RIDE -> Tints.Yellow
@@ -1054,8 +1054,8 @@ fun liveTint(kind: LiveKind): Color = when (kind) {
 }
 
 /**
- * Главное из уведомления для узкой капсулы: расстояние до манёвра; у навигатора без расстояния —
- * время в пути, у такси и доставки — заголовок. Если показывать нечего, возвращает null.
+ * Main info from the notification for a narrow capsule: distance to the maneuver; for a navigator without distance,
+ * travel time; for taxi and delivery, the title. Returns null if there is nothing to show.
  */
 fun liveShort(l: LiveInfo): String? = l.distance
     ?: if (l.kind == LiveKind.NAV) {
@@ -1064,7 +1064,7 @@ fun liveShort(l: LiveInfo): String? = l.distance
         l.title.ifBlank { l.text }.take(18).takeIf { it.isNotBlank() }
     }
 
-/** Значок «живой активности»: стрелка манёвра, если известно куда ехать, иначе картинка из уведомления или значок приложения. */
+/** "Live activity" icon: a maneuver arrow if the direction is known, otherwise the notification image or the app icon. */
 @Composable
 fun LiveGlyph(l: LiveInfo, size: Dp, tint: Color) {
     when {
@@ -1074,7 +1074,7 @@ fun LiveGlyph(l: LiveInfo, size: Dp, tint: Color) {
     }
 }
 
-/** Навигатор, такси или доставка в капсуле: значок приложения у левого края, главное — у правого. */
+/** Navigator, taxi or delivery in the capsule: app icon at the left edge, main info at the right. */
 @Composable
 private fun LiveCompact(l: LiveInfo, s: IslandSettings) {
     val h = activeHeight(s)
@@ -1094,8 +1094,8 @@ private fun LiveCompact(l: LiveInfo, s: IslandSettings) {
 }
 
 /**
- * Широкая плашка при запуске навигатора, такси или доставки — как у iPhone и в ролике: стрелка и расстояние
- * слева, улица и время прибытия справа; потом остров сжимается в капсулу.
+ * Wide banner when a navigator, taxi or delivery starts, like iPhone and the video: arrow and distance
+ * on the left, street and arrival time on the right; then the island shrinks into a capsule.
  */
 @Composable
 private fun LiveBanner(n: Notice, l: LiveInfo, s: IslandSettings, wideWidth: Dp) {
@@ -1121,7 +1121,7 @@ private fun LiveBanner(n: Notice, l: LiveInfo, s: IslandSettings, wideWidth: Dp)
                 Text(l.text, color = Color.White.copy(alpha = 0.85f), fontSize = 13.sp, lineHeight = 16.sp, maxLines = 1,
                     overflow = TextOverflow.Ellipsis, textAlign = TextAlign.End)
             }
-            // На узкой плашке — коротко: «12:31 · 19 ч»; полностью — в раскрытом виде
+            // On a narrow banner it is short: "12:31 · 19 h"; in full in the expanded view
             val arrive = trf("Прибытие в {0}", "Arrive {0}", "")
             val shortEta = l.eta?.removePrefix(arrive)?.removePrefix("Прибытие в ")?.removePrefix("Arrive ")?.split(" · ")?.take(2)
                 ?.joinToString(" · ")
@@ -1133,8 +1133,8 @@ private fun LiveBanner(n: Notice, l: LiveInfo, s: IslandSettings, wideWidth: Dp)
 }
 
 /**
- * Входящий звонок, как на iPhone и в ролике: аватар, подпись с именем и две круглые кнопки в одну строку
- * посередине высоты; зелёная кнопка «дышит», пока звонят. Камера приходится между именем и кнопками.
+ * Incoming call, like iPhone and the video: avatar, label with the name and two round buttons in one row
+ * in the middle of the height; the green button "breathes" while ringing. The camera falls between the name and the buttons.
  */
 @Composable
 private fun IncomingCall(c: CallInfo, s: IslandSettings, wideWidth: Dp) {

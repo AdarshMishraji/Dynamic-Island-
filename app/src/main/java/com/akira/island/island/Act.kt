@@ -14,7 +14,7 @@ import com.akira.island.core.StopwatchState
 import com.akira.island.core.TimerState
 import com.akira.island.core.TorchState
 
-/** То, что сейчас может показывать остров. Короткие (transient) не раскрываются и не уходят в пузырь. */
+/** What the island can show right now. Short (transient) ones do not expand and do not go into the bubble. */
 sealed class Act(val id: String, val transient: Boolean = false) {
     open val pkg: String? get() = null
 
@@ -43,13 +43,13 @@ sealed class Act(val id: String, val transient: Boolean = false) {
         override val pkg: String get() = l.pkg
     }
     data class ChargingA(val b: BatteryInfo) : Act("charging")
-    /** Оплата телефоном: ждём терминал. Не раскрывается и не уходит в пузырь */
+    /** Phone payment: waiting for the terminal. Does not expand and does not go into the bubble */
     data class PayA(val p: PayReady) : Act("pay", transient = true) {
         override val pkg: String get() = p.pkg
     }
     data class AlarmA(val a: AlarmInfo) : Act("alarm") {
         override val pkg: String? get() = a.pkg
     }
-    /** «История уведомлений»: прочитать позже — значки приложений в капсуле, список при раскрытии */
+    /** "Notification history": read later. App icons in the capsule, a list when expanded */
     data class InboxA(val items: List<InboxItem>) : Act("inbox")
 }

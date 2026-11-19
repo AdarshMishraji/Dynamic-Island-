@@ -17,11 +17,11 @@ import com.akira.island.data.SettingsRepo
 import com.akira.island.island.Ios
 
 /**
- * Ближайший будильник. Его знает сама система (AlarmManager.getNextAlarmClock) — уведомления «Часов»
- * для этого не нужны. Поставили новый будильник — остров показывает плашку со временем подъёма;
- * следующий по расписанию (прошлый прозвенел или отложен) — молча.
- * Будильником системы пользуются и календари, напоминалки, трекеры сна — их «будильник» человек не ставил,
- * поэтому берём только поставленные приложением-будильником («Часы», Alarmy и т. п.).
+ * The nearest alarm. The system itself knows it (AlarmManager.getNextAlarmClock), so Clock notifications
+ * are not needed for this. When a new alarm is set, the island shows a banner with the wake-up time;
+ * the next one on the schedule (the previous rang or was snoozed) shows silently.
+ * Calendars, reminders and sleep trackers also use the system alarm; the user did not set an "alarm" with them,
+ * so we take only those set by an alarm app ("Clock", Alarmy, etc.).
  */
 class AlarmMonitor(private val context: Context) {
     private val alarms = context.getSystemService(AlarmManager::class.java)
@@ -50,7 +50,7 @@ class AlarmMonitor(private val context: Context) {
         if (!announce || next == null || prev?.triggerAt == next.triggerAt) return
         val now = System.currentTimeMillis()
         if (next.triggerAt <= now) return
-        // Прошлый будильник уже прозвенел или его отложили — это не новый, а очередной по расписанию
+        // The previous alarm already rang or was snoozed; this is not new but the next one on the schedule
         if (prev != null && prev.triggerAt <= now + 60_000) return
         val s = SettingsRepo.current
         if (!s.enabled || !s.evAlarmSet) return

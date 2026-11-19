@@ -11,7 +11,7 @@ import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
-/** Сколько раз в секунду рисуются живые украшения: эквалайзер, светящаяся точка. 0 — с частотой экрана */
+/** How many times per second live decorations are drawn: equalizer, glowing dot. 0 means the screen refresh rate */
 @Serializable
 enum class FxRate(val fps: Int, private val ru: String, private val en: String) {
     ECO(30, "30 кадров — экономнее", "30 fps — saves power"),
@@ -81,7 +81,7 @@ enum class SwipeAction(private val ru: String, private val en: String) {
     val title: String get() = tr(ru, en)
 }
 
-/** Кнопки раскрытого пустого острова. Подпись на кнопке короче, чем в настройках */
+/** Buttons of the expanded empty island. The button label is shorter than in settings */
 @Serializable
 enum class QuickAction(private val ru: String, private val en: String, private val shortRu: String, private val shortEn: String) {
     TIMER("Таймер", "Timer", "Таймер", "Timer"),
@@ -109,7 +109,7 @@ enum class QuickAction(private val ru: String, private val en: String, private v
     val short: String get() = tr(shortRu, shortEn)
 }
 
-/** Откуда берётся цвет кнопок «Ответить», «Пометить прочитанным» и отправки в карточке уведомления. */
+/** Where the color of the "Reply", "Mark as read" and send buttons in the notification card comes from. */
 @Serializable
 enum class AccentMode(private val ru: String, private val en: String, private val hintRu: String, private val hintEn: String) {
     DEFAULT("Сиреневый", "Lavender", "Цвет приложения", "The app's color"),
@@ -122,7 +122,7 @@ enum class AccentMode(private val ru: String, private val en: String, private va
     val hint: String get() = tr(hintRu, hintEn)
 }
 
-/** С какой стороны от капсулы кружок второй активности. */
+/** Which side of the capsule the second activity's circle is on. */
 @Serializable
 enum class BubbleSide(private val ru: String, private val en: String) {
     RIGHT("Справа", "On the right"),
@@ -132,7 +132,7 @@ enum class BubbleSide(private val ru: String, private val en: String) {
     val title: String get() = tr(ru, en)
 }
 
-/** Как выглядит уведомление приложения: большая карточка или маленькая пилюля у камеры. */
+/** How an app notification looks: a large card or a small pill near the camera. */
 @Serializable
 enum class MessageStyle(private val ru: String, private val en: String, private val hintRu: String, private val hintEn: String) {
     CARD("Карточка", "Card", "Остров раскрывается сверху: аватар, текст и кнопки", "The island opens from the top: avatar, text and buttons"),
@@ -144,7 +144,7 @@ enum class MessageStyle(private val ru: String, private val en: String, private 
     val hint: String get() = tr(hintRu, hintEn)
 }
 
-/** Шрифт текста в острове. */
+/** Font of the island text. */
 @Serializable
 enum class IslandFont(private val ru: String, private val en: String) {
     INTER("Inter — как на iPhone", "Inter — like on iPhone"),
@@ -155,7 +155,7 @@ enum class IslandFont(private val ru: String, private val en: String) {
     val title: String get() = tr(ru, en)
 }
 
-/** Остров на экране блокировки. */
+/** Island on the lock screen. */
 @Serializable
 enum class LockScreenMode(private val ru: String, private val en: String) {
     SHOW("Показывать", "Show"),
@@ -167,7 +167,7 @@ enum class LockScreenMode(private val ru: String, private val en: String) {
     val title: String get() = tr(ru, en)
 }
 
-/** Остров в альбомной ориентации (игры, видео). */
+/** Island in landscape orientation (games, video). */
 @Serializable
 enum class LandscapeMode(private val ru: String, private val en: String, private val hintRu: String, private val hintEn: String) {
     HIDE("Скрывать", "Hide", "Не мешает играм и видео", "Stays out of games and videos"),
@@ -181,7 +181,7 @@ enum class LandscapeMode(private val ru: String, private val en: String, private
     val hint: String get() = tr(hintRu, hintEn)
 }
 
-/** Правило для уведомлений одного приложения. */
+/** Rule for notifications from one app. */
 @Serializable
 enum class AppRule { ALWAYS, NEVER }
 
@@ -202,8 +202,8 @@ enum class MessageIconPosition(private val ru: String, private val en: String) {
 }
 
 /**
- * Язык приложения и острова. «Как в системе» — язык телефона, если он есть в приложении, иначе английский.
- * Названия языков — на самих языках, чтобы свой язык нашёлся, даже если сейчас выбран непонятный.
+ * App and island language. "As in system" is the phone's language if the app has it, otherwise English.
+ * Language names are in the languages themselves, so you can find yours even if an unreadable one is currently selected.
  */
 @Serializable
 enum class AppLanguage(val code: String) {
@@ -227,10 +227,10 @@ enum class AppLanguage(val code: String) {
 @Serializable
 data class IslandSettings(
     val enabled: Boolean = true,
-    /** Язык приложения и острова */
+    /** App and island language */
     val language: AppLanguage = AppLanguage.SYSTEM,
 
-    // Динамические карточки
+    // Dynamic cards
     val cardMedia: Boolean = true,
     val cardTorch: Boolean = true,
     val cardProgress: Boolean = true,
@@ -240,22 +240,22 @@ data class IslandSettings(
     val cardCharging: Boolean = true,
     val cardCall: Boolean = true,
     val cardMessages: Boolean = true,
-    /** Кнопки «Ответить» и «Пометить прочитанным» в карточке уведомления */
+    /** "Reply" and "Mark as read" buttons in the notification card */
     val msgActions: Boolean = true,
-    /** Навигация, такси и доставка — «живые активности» из постоянных уведомлений */
+    /** Navigation, taxi and delivery: "live activities" from ongoing notifications */
     val cardLive: Boolean = true,
-    /** Будильник: за 12 часов до него — время подъёма и сколько осталось спать */
+    /** Alarm: 12 hours before it, the wake-up time and how much sleep is left */
     val cardAlarm: Boolean = true,
-    /** Кнопки острова для таймера «Часов» нажимают кнопки самих «Часов» (без уведомлений — открывая их на миг) */
+    /** The island's buttons for the "Clock" timer press the "Clock" app's own buttons (without notifications, by opening it for a moment) */
     val clockAutoTap: Boolean = true,
-    /** «Поставь таймер» от помощника и виджетов можно отдать острову */
+    /** "Set a timer" from the assistant and widgets can be handed to the island */
     val timerFromAssistant: Boolean = true,
-    /** Звонит таймер, будильник или входящий вызов — остров включает экран и не даёт ему погаснуть */
+    /** When a timer, alarm or incoming call rings, the island turns on the screen and keeps it from going off */
     val wakeForAlerts: Boolean = true,
-    /** Особые песни остров встречает эффектами в такт музыке */
+    /** The island greets special songs with effects in time with the music */
     val easterEggs: Boolean = true,
 
-    // События
+    // Events
     val evChargeStart: Boolean = true,
     val evChargeStop: Boolean = true,
     val evLowBattery: Boolean = true,
@@ -272,20 +272,20 @@ data class IslandSettings(
     val evUnlock: Boolean = false,
     /** Optional, verified face unlock only. Never falls back to a generic unlock event. */
     val faceUnlockOnly: Boolean = false,
-    /** На экране блокировки в капсуле замок; после разблокировки он уходит */
+    /** On the lock screen the capsule shows a lock; it goes away after unlock */
     val evLock: Boolean = true,
     val evDnd: Boolean = true,
-    /** Экран оплаты телефоном (T-Pay, SberPay, Mir Pay, Google Кошелёк…) — «Оплата · К терминалу» */
+    /** Phone payment screen (T-Pay, SberPay, Mir Pay, Google Wallet…): "Payment · To terminal" */
     val evPayReady: Boolean = true,
-    /** «К терминалу» сразу при открытии банка или кошелька, а не только на экране оплаты телефоном */
+    /** "To terminal" immediately when a bank or wallet is opened, not only on the phone payment screen */
     val payHintOnOpen: Boolean = false,
-    /** Пришло уведомление об оплате — «Оплачено» с галочкой */
+    /** Payment notification arrived: "Paid" with a checkmark */
     val evPaySuccess: Boolean = true,
-    /** Поставили будильник — плашка со временем подъёма */
+    /** Alarm set: a banner with the wake-up time */
     val evAlarmSet: Boolean = true,
 
-    // Размер и положение, dp. Камера Android меньше, чем у iPhone (там капсула 126×37), поэтому и остров
-    // по умолчанию меньше; ширина и высота настраиваются в «Положении и размере»
+    // Size and position, dp. Android cameras are smaller than the iPhone's (there the capsule is 126×37), so the island
+    // is smaller by default too; width and height are set in "Position and size"
     val width: Int = 104,
     val height: Int = 31,
     val offsetX: Int = 0,
@@ -293,20 +293,20 @@ data class IslandSettings(
     /** Independent edge trim for waterdrop cutouts; old notch placements retain their zero offset. */
     val notchOffsetY: Int = 0,
     /**
-     * «Как вырез»: остров прилегает к верхнему краю экрана, верх у него прямой — для телефонов с каплей
-     * (waterdrop): капсула закрывает вырез и растёт из него вниз. Отступ сверху тогда не нужен.
+     * "Like a cutout": the island touches the top edge of the screen and has a flat top, for phones with a waterdrop
+     * notch: the capsule covers the cutout and grows down from it. No top offset is needed then.
      */
     val notch: Boolean = false,
-    /** Свободное место над камерой посередине капсулы, куда не заходит содержимое */
+    /** Free space above the camera in the middle of the capsule, where content doesn't go */
     val cameraGap: Int = 34,
-    /** Насколько капсула с активностью (музыка, таймер, зарядка) толще пустой */
+    /** How much thicker a capsule with an activity (music, timer, charging) is than an empty one */
     val activeExtra: Int = 6,
-    /** На сколько свёрнутая капсула с активностью (навигатор, фонарик, музыка) шире спокойной; 0 — такая же */
+    /** How much wider a collapsed capsule with an activity (navigator, flashlight, music) is than the idle one; 0 means the same */
     val activeWidth: Int = 40,
-    // Нет в старых настройках → 1, тогда размеры переносятся на новые
+    // Missing in old settings → 1, then sizes are migrated to the new ones
     val layoutVersion: Int = 1,
 
-    // Цвета
+    // Colors
     val color: Long = 0xFF000000,
     val outline: Boolean = false,
     val outlineColor: Long = 0xFF3A3A40,
@@ -314,139 +314,139 @@ data class IslandSettings(
     val outlineFromArt: Boolean = true,
     val shadow: Boolean = false,
 
-    // Цвет кнопок в карточке уведомления
+    // Button color in the notification card
     val accentMode: AccentMode = AccentMode.DEFAULT,
     val accentColor: Long = 0xFF0A84FF,
     val textColorEnabled: Boolean = false,
     val textColor: Long = 0xFFFFFFFF,
 
-    // Обновления из GitHub Releases
+    // Updates from GitHub Releases
     val autoUpdateCheck: Boolean = true,
-    /** Версия, от которой отказались, — про неё больше не напоминаем */
+    /** Version that was declined: we don't remind about it anymore */
     val skippedVersion: String = "",
-    /** Версия, для которой уже показали «Что нового» */
+    /** Version for which "What's new" was already shown */
     val lastSeenVersion: String = "",
     val lastUpdateCheck: Long = 0,
-    /** Какую версию остров уже видел: после обновления он один раз показывает «Обновлено» */
+    /** Which version the island has already seen: after an update it shows "Updated" once */
     val islandVersion: String = "",
 
-    // Liquid Glass: полупрозрачное стекло с бликами вместо чёрной заливки. По умолчанию выключено
+    // Liquid Glass: translucent glass with highlights instead of a black fill. Off by default
     val liquidGlass: Boolean = false,
     val glassOpacity: Int = 68,
     val glassBlurStrength: Int = 50,
     val backdropBlur: Boolean = false,
 
-    // Анимации
+    // Animations
     val expandStyle: ExpandStyle = ExpandStyle.FRUIT,
     val durationPercent: Int = 35,
     /**
-     * «Жидкое раскрытие» («Оформление»): содержимое растёт вместе с островом и проявляется из размытия.
-     * Длительность и упругость те же, что без него. Выключено — прежнее перетекание
+     * "Liquid expand" ("Appearance"): content grows with the island and fades in from blur.
+     * Duration and springiness are the same as without it. Off means the old flowing transition
      */
     val liquidExpand: Boolean = true,
-    /** Слабая упругость: с сильной остров, как писали в комментариях, слишком «прыгает» */
+    /** Weak springiness: with strong, the island, as commenters wrote, "bounces" too much */
     val elasticity: Elasticity = Elasticity.LOW,
     val reduceEffects: Boolean = false,
     val haptics: Boolean = true,
 
-    // Эффекты — каждый можно выключить отдельно; «Уменьшить эффекты» выключает их все
-    /** Содержимое острова перетекает с размытием (Android 12+) */
+    // Effects: each can be turned off separately; "Reduce effects" turns them all off
+    /** Island content flows with a blur (Android 12+) */
     val fxBlur: Boolean = true,
-    /** Полоски эквалайзера пляшут под музыку; выключено — стоят ровно, так экономнее */
+    /** Equalizer bars dance to the music; off means they stand flat, which saves more power */
     val fxEqualizer: Boolean = true,
-    /** Частота кадров эквалайзера и свечения: 60 — плавно и вдвое легче, чем 120 у экрана */
+    /** Equalizer and glow frame rate: 60 is smooth and half the load of the screen's 120 */
     val fxRate: FxRate = FxRate.SMOOTH,
-    /** Мягкое свечение цвета обложки вокруг острова, пока играет музыка */
+    /** Soft glow of the cover color around the island while music plays */
     val fxGlow: Boolean = false,
-    /** Волны NFC вокруг острова, пока ждём терминал, и вспышка с искрами, когда оплата прошла */
+    /** NFC waves around the island while waiting for the terminal, and a flash with sparks when payment succeeds */
     val fxPay: Boolean = true,
-    /** Капсула вздрагивает при смене режима звука, колокольчик звонящего таймера качается */
+    /** The capsule shudders when the ringer mode changes, the bell of a ringing timer swings */
     val fxShake: Boolean = true,
-    /** В режиме энергосбережения Android остров обходится без живых эффектов. По умолчанию выключено */
+    /** In Android power saving mode the island goes without live effects. Off by default */
     val batterySaver: Boolean = false,
 
-    // Жесты
+    // Gestures
     val tapAction: TapAction = TapAction.EXPAND,
     val doubleTapAction: TapAction = TapAction.NOTHING,
     val longPressAction: TapAction = TapAction.OPEN_APP,
     val swipeTracks: Boolean = true,
     val swipeExpand: Boolean = true,
 
-    // Текст песен
+    // Lyrics
     val lyricsEnabled: Boolean = true,
 
-    // Поведение
+    // Behavior
     val hideIdle: Boolean = false,
     /** Hide an inactive empty capsule after this many seconds; 0 disables the timer. */
     val idleHideSec: Int = 0,
     val hideInLandscape: Boolean = true,
     val hideWhenPlayerOpen: Boolean = true,
-    /** «По расписанию»: остров виден только с [scheduleFrom] до [scheduleTo] часов (можно через полночь) */
+    /** "Scheduled": the island is visible only from [scheduleFrom] to [scheduleTo] o'clock (may span midnight) */
     val scheduleOn: Boolean = false,
     val scheduleFrom: Int = 10,
     val scheduleTo: Int = 23,
     val noticeDurationMs: Int = 2500,
     val timerMinutes: Int = 5,
-    /** Через сколько секунд без касаний раскрытый остров сворачивается сам; 0 — не сворачивается */
+    /** After how many seconds without touches the expanded island collapses by itself; 0 means it doesn't collapse */
     val autoCollapseSec: Int = 0,
-    /** Вторая активность — кружком рядом с капсулой, как на iPhone */
+    /** Second activity is a circle next to the capsule, like on iPhone */
     val bubble: Boolean = true,
     /** A third activity goes into a pill on the other side of the capsule (needs the bubble). */
     val thirdBubble: Boolean = true,
-    /** Нажатие на пустой остров раскрывает его: часы, заряд и [quickActions] */
+    /** Tapping the empty island expands it: clock, charge and [quickActions] */
     val idleExpand: Boolean = true,
-    /** Кнопки раскрытого пустого острова; пусто — только часы и заряд */
+    /** Buttons of the expanded empty island; empty means only clock and charge */
     val quickActions: List<QuickAction> = listOf(QuickAction.TIMER, QuickAction.STOPWATCH, QuickAction.FLASHLIGHT),
-    /** «Не выгружать остров»: служба с тихим уведомлением, чтобы остров не закрывался вместе с недавними */
+    /** "Keep island alive": a service with a quiet notification so the island isn't closed along with recent apps */
     val keepAlive: Boolean = false,
-    /** Сколько строк текста видно в карточке уведомления */
+    /** How many lines of text are visible in the notification card */
     val msgLines: Int = 3,
-    /** Уведомления приложения, которое сейчас открыто, тоже приходят в остров */
+    /** Notifications of the currently open app also come to the island */
     val msgInApp: Boolean = false,
-    /** Мессенджеры, чьи сообщения уже были в острове, и канал их уведомлений — для «Системных плашек» */
+    /** Messengers whose messages have already been in the island, and their notification channel: for "System banners" */
     val msgChannels: Map<String, String> = emptyMap(),
-    /** Подсказку «Уведомления приходят дважды?» на главной убрали */
+    /** The "Notifications arrive twice?" hint on the home screen was removed */
     val bannerHintHidden: Boolean = false,
 
-    // 1.7 — по просьбам из комментариев
-    /** Непрозрачность заливки острова, %: 100 — сплошной цвет, меньше — сквозь остров видно, что под ним */
+    // 1.7: by request from the comments
+    /** Island fill opacity, %: 100 is solid color, less lets you see what's under the island */
     val islandOpacity: Int = 100,
-    /** Ширина раскрытого острова, плашек и уведомлений, % от обычной (почти во всю ширину экрана) */
+    /** Width of the expanded island, banners and notifications, % of normal (almost full screen width) */
     val expandedWidthPercent: Int = 100,
-    /** Размер текста и значков в раскрытом острове и в уведомлениях, % */
+    /** Size of text and icons in the expanded island and notifications, % */
     val contentScale: Int = 100,
-    /** С какой стороны от капсулы кружок второй активности */
+    /** Which side of the capsule the second activity's circle is on */
     val bubbleSide: BubbleSide = BubbleSide.RIGHT,
-    /** Вид уведомлений приложений */
+    /** Look of app notifications */
     val messageStyle: MessageStyle = MessageStyle.CARD,
-    /** Шрифт острова; у [IslandFont.CUSTOM] — файл, выбранный в «Шрифте» */
+    /** Island font; for [IslandFont.CUSTOM] the file chosen in "Font" */
     val islandFont: IslandFont = IslandFont.INTER,
-    /** Название своего шрифта — чтобы показать его в настройках */
+    /** Name of the custom font: to show it in settings */
     val customFontName: String = "",
-    /** Файл своего шрифта в личной папке приложения: у каждого выбора своё имя, чтобы новый шрифт не путался со старым */
+    /** Custom font file in the app's private folder: each choice has its own name so a new font isn't mixed up with the old one */
     val customFontFile: String = "",
-    /** Толщина текста острова: -1 тоньше, 0 как задумано, 1 и 2 — жирнее */
+    /** Island text weight: -1 thinner, 0 as designed, 1 and 2 bolder */
     val fontWeightShift: Int = 0,
-    /** Задержка перед появлением события в острове, мс */
+    /** Delay before an event appears in the island, ms */
     val noticeDelayMs: Int = 0,
-    /** Сколько видно уведомление приложения: 0 — как события (с запасом на чтение), -1 — пока не смахнут, иначе секунды */
+    /** How long an app notification is visible: 0 same as events (with reading margin), -1 until swiped away, otherwise seconds */
     val messageSeconds: Int = 0,
-    /** Повторы — то же самое сообщение того же приложения ещё раз — не показываются */
+    /** Repeats (the same message from the same app again) aren't shown */
     val msgDedupe: Boolean = true,
     /**
-     * «История уведомлений»: после плашки уведомление ждёт в острове столько минут — значки приложений в капсуле,
-     * список при раскрытии. 0 — выключено, -1 — пока не прочитаете или не очистите
+     * "Notification history": after the banner a notification waits in the island this many minutes, app icons in the capsule,
+     * a list on expand. 0 is off, -1 until you read or clear it
      */
     val historyMinutes: Int = 0,
-    /** Показывать и тихие уведомления — те, что система не показывает всплывающими (как у Snapchat и многих приложений) */
+    /** Also show quiet notifications: those the system doesn't show as pop-ups (like Snapchat and many apps) */
     val msgQuiet: Boolean = false,
-    /** Свои правила приложений: всегда показывать или никогда */
+    /** Custom per-app rules: always show or never */
     val msgAppRules: Map<String, AppRule> = emptyMap(),
-    /** Остров на экране блокировки */
+    /** Island on the lock screen */
     val lockScreen: LockScreenMode = LockScreenMode.SHOW,
-    /** Остров в альбомной ориентации; заменяет «Скрывать в альбомной ориентации» */
+    /** Island in landscape orientation; replaces "Hide in landscape orientation" */
     val landscape: LandscapeMode = LandscapeMode.HIDE,
-    /** Зарядка — только плашка при подключении, без капсулы с процентами всё время зарядки */
+    /** Charging is only a banner on plug-in, without a capsule with the percentage the whole time it charges */
     val chargingBrief: Boolean = false,
 
     // Optional presentation controls. Defaults preserve the existing 1.7 layout.
@@ -561,20 +561,20 @@ data class IslandSettings(
         com.akira.island.core.TransferKind.INSTALL -> transferInstall
     }
 
-    /** С «Экономией заряда» в энергосбережении Android — как с «Уменьшить эффекты» */
+    /** With "Battery saver" in Android power saving: same as "Reduce effects" */
     fun forPowerSave(on: Boolean): IslandSettings = if (on && batterySaver && !reduceEffects) copy(reduceEffects = true) else this
 
-    /** Сейчас часы работы острова: расписание выключено или час [hour] внутри него (22–7 — через полночь) */
+    /** Whether the island's working hours are now in effect: the schedule is off or hour [hour] is inside it (22–7 spans midnight) */
     fun inSchedule(hour: Int): Boolean = when {
         !scheduleOn || scheduleFrom == scheduleTo -> true
         scheduleFrom < scheduleTo -> hour in scheduleFrom until scheduleTo
         else -> hour >= scheduleFrom || hour < scheduleTo
     }
 
-    /** Отступ острова сверху: у «Как вырез» остров начинается от самого края экрана */
+    /** Island top offset: with "Like a cutout" the island starts at the very edge of the screen */
     val topOffset: Int get() = if (notch) notchOffsetY.coerceIn(-10, 30) else offsetY
 
-    /** Пляшет ли эквалайзер */
+    /** Whether the equalizer dances */
     val liveEqualizer: Boolean get() = fxEqualizer && !reduceEffects
 }
 
@@ -588,7 +588,7 @@ object SettingsRepo {
 
     private var prefs: SharedPreferences? = null
 
-    /** Настройки уже были сохранены до этого запуска: значит, это обновление, а не первая установка. */
+    /** Settings were already saved before this launch: so this is an update, not a first install. */
     var hadSavedSettings = false
         private set
     private val _state = MutableStateFlow(IslandSettings())
@@ -603,9 +603,9 @@ object SettingsRepo {
         p.getString(KEY, null)?.let { raw ->
             runCatching { json.decodeFromString<IslandSettings>(raw) }.onSuccess { _state.value = it }
         }
-        // 1.1 и раньше: размеры по умолчанию были меньше, чем у iPhone — переносим, если их не трогали
+        // 1.1 and earlier: default sizes were smaller than the iPhone's; migrate if they weren't touched
         val cur = _state.value
-        // 1.4: автоподгонка могла выставить странный вырез камеры — возвращаем по умолчанию
+        // 1.4: auto-fit could set a strange camera cutout; reset to default
         if (cur.layoutVersion in 2..2) update { copy(cameraGap = IslandSettings().cameraGap, layoutVersion = 3) }
         if (cur.layoutVersion < 2) {
             update {
@@ -617,7 +617,7 @@ object SettingsRepo {
                 )
             }
         }
-        // 1.6.2: прежний размер iPhone 126×37 на Android велик — если его не меняли, ставим новый, поменьше
+        // 1.6.2: the old iPhone size 126×37 is too big on Android; if it wasn't changed, set the new, smaller one
         if (current.layoutVersion < 4) {
             val d = IslandSettings()
             update {
@@ -626,7 +626,7 @@ object SettingsRepo {
                     width = if (old) d.width else width,
                     height = if (old) d.height else height,
                     activeWidth = if (old && activeWidth == 48) d.activeWidth else activeWidth,
-                    // Сильная упругость была по умолчанию — переходим на новую, мягче
+                    // Strong springiness was the default; switch to the new, softer one
                     elasticity = if (elasticity == Elasticity.HIGH) d.elasticity else elasticity,
                     layoutVersion = 4,
                 )
@@ -636,8 +636,8 @@ object SettingsRepo {
     }
 
     /**
-     * 1.7: вместо «Скрывать в альбомной ориентации» — выбор из трёх. Выключенное скрытие было островом
-     * сверху по центру — так и остаётся.
+     * 1.7: instead of "Hide in landscape orientation", a choice of three. With hiding off, the island was shown
+     * at the top center, and that stays.
      */
     private fun migrateTo5() {
         if (current.layoutVersion >= 5) return

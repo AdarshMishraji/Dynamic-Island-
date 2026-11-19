@@ -96,9 +96,9 @@ import com.akira.island.update.UpdateChecker
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-/** Какие разрешения есть. Проверяются заново каждый раз, когда возвращаемся из системных настроек. */
+/** Which permissions are granted. Rechecked every time we return from system settings. */
 private class PermState(val accessibility: Boolean, val notifications: Boolean, val calls: Boolean, val bluetooth: Boolean) {
-    /** Чего не хватает — для подписи на главной */
+    /** What is missing, for the label on the home screen */
     val missing: List<String>
         get() = listOfNotNull(
             tr("спец. возможности", "accessibility").takeIf { !accessibility },
@@ -109,8 +109,8 @@ private class PermState(val accessibility: Boolean, val notifications: Boolean, 
 }
 
 /**
- * Значение, которое читается заново каждый раз, когда возвращаемся на экран (например, из настроек системы),
- * и функция «прочитать ещё раз».
+ * A value that is re-read every time we return to the screen (for example, from system settings),
+ * and a "read again" function.
  */
 @Composable
 internal fun <T> rememberOnResume(read: () -> T): Pair<T, () -> Unit> {
@@ -122,7 +122,7 @@ internal fun <T> rememberOnResume(read: () -> T): Pair<T, () -> Unit> {
     return remember(tick) { read() } to { tick++ }
 }
 
-/** Разрешения и функция «проверить ещё раз» — после ответа на системный запрос. */
+/** Permissions and a "check again" function, after answering the system prompt. */
 @Composable
 private fun rememberPermState(): Pair<PermState, () -> Unit> {
     val context = LocalContext.current
@@ -132,8 +132,8 @@ private fun rememberPermState(): Pair<PermState, () -> Unit> {
 }
 
 /**
- * «Главная»: живой пример, включён ли остров, разрешения и проверка. Всё, что настраивается, —
- * во вкладках «Функции» и «Оформление», версия и помощь — в «О приложении».
+ * "Home": a live preview of whether the island is on, permissions and testing. Everything configurable is
+ * in the "Features" and "Appearance" tabs, version and help are in "About".
  */
 @Composable
 fun HomeScreen(open: (Screen) -> Unit) {
@@ -147,12 +147,12 @@ fun HomeScreen(open: (Screen) -> Unit) {
         IslandPreview()
         UpdateSection()
 
-        // Без службы спец. возможностей острова нет вовсе — это первый шаг
+        // Without the accessibility service there is no island at all; this is the first step
         if (!perms.accessibility) {
             StartCard(onOpen = { Perms.openAccessibility(context) }, onHelp = { open(Screen.INSTRUCTION) })
         }
 
-        // Сообщение пришло и в остров, и своей плашкой мессенджера — подсказываем один раз, как убрать вторую
+        // A message arrived both in the island and as the messenger's own banner; we hint once how to remove the second
         val popUp by SystemBanners.popUp.collectAsState()
         val doubled = popUp.filterValues { it }.keys.firstOrNull()
         if (doubled != null && !s.bannerHintHidden) {
@@ -181,9 +181,9 @@ fun HomeScreen(open: (Screen) -> Unit) {
                 color = if (missing.isEmpty()) Tile.Green else Tile.Orange,
                 onClick = { open(Screen.PERMISSIONS) },
             ) { if (missing.isEmpty()) Arrow() else CountBadge(missing.size) }
-            // На виду: на Xiaomi, Oppo, Samsung остров иначе пропадает, и люди не знают почему
+            // Shown prominently: on Xiaomi, Oppo, Samsung the island otherwise disappears, and people don't know why
             KeepAliveItem(Pos.Middle, open)
-            // И про банки, которые не пускают, пока остров включён
+            // And about banks that won't let you in while the island is on
             BanksItem(Pos.Middle, open)
             GroupItem(
                 Pos.Last, Icons.Rounded.Science, tr("Проверка", "Try it"),
@@ -194,7 +194,7 @@ fun HomeScreen(open: (Screen) -> Unit) {
     }
 }
 
-/** Первый шаг на главной: пока служба спец. возможностей выключена. */
+/** First step on the home screen: while the accessibility service is off. */
 @Composable
 private fun StartCard(onOpen: () -> Unit, onHelp: () -> Unit) {
     val context = LocalContext.current
@@ -222,7 +222,7 @@ private fun StartCard(onOpen: () -> Unit, onHelp: () -> Unit) {
             Modifier.fillMaxWidth().clip(CircleShape).background(Ui.Primary).clickable(onClick = onOpen).padding(vertical = 14.dp),
             contentAlignment = Alignment.Center,
         ) { Text(tr("Открыть спец. возможности", "Open Accessibility"), color = Ui.OnPrimary, fontSize = 15.sp, fontWeight = FontWeight.SemiBold) }
-        // Android 13+ не даёт включить службу приложению не из Play Маркета, пока не разрешишь «ограниченные настройки»
+        // Android 13+ does not let an app not from Play Store enable the service until you allow "restricted settings"
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             Spacer(Modifier.height(16.dp))
             Text(restrictedHelp(), color = Ui.Sub, fontSize = 14.sp, lineHeight = 20.sp)
@@ -244,7 +244,7 @@ private fun StartCard(onOpen: () -> Unit, onHelp: () -> Unit) {
     }
 }
 
-/** Android 13+ не даёт включить службу приложению не из Play Маркета, пока не разрешишь «ограниченные настройки». */
+/** Android 13+ does not let an app not from Play Store enable the service until you allow "restricted settings". */
 internal fun restrictedHelp(): String = tr(
     "Android пишет «Ограниченная настройка» или «Доступ запрещён»? Так он защищает приложения не из Play Маркета:\n" +
         "1. Попробуйте включить службу один раз — появится это окно, закройте его.\n" +
@@ -256,7 +256,7 @@ internal fun restrictedHelp(): String = tr(
         "3. Go back to Accessibility and turn the island on.",
 )
 
-/** «Сообщения приходят дважды?» — когда у мессенджера ещё всплывает своя плашка поверх острова. */
+/** "Messages arrive twice?": when the messenger also pops up its own banner over the island. */
 @Composable
 private fun DoubleBannerCard(app: String, onFix: () -> Unit, onHide: () -> Unit) {
     Column(
@@ -279,7 +279,7 @@ private fun DoubleBannerCard(app: String, onFix: () -> Unit, onHide: () -> Unit)
     }
 }
 
-/** «Разрешения»: что острову нужно от системы и зачем. */
+/** "Permissions": what the island needs from the system and why. */
 @Composable
 fun PermissionsScreen(onBack: () -> Unit, open: (Screen) -> Unit) {
     val context = LocalContext.current
@@ -287,7 +287,7 @@ fun PermissionsScreen(onBack: () -> Unit, open: (Screen) -> Unit) {
     val btLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { refresh() }
     val callLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
         refresh()
-        // Если система больше не показывает запрос — открываем настройки приложения
+        // If the system no longer shows the prompt, we open the app settings
         if (result.values.none { it } && !Perms.calls(context)) Perms.openAppDetails(context)
     }
 
@@ -337,10 +337,10 @@ fun PermissionsScreen(onBack: () -> Unit, open: (Screen) -> Unit) {
     }
 }
 
-/** Пример для «Проверки»: значок, название, что увидите, и что делает нажатие. */
+/** Example for "Test": icon, title, what you will see, and what tapping does. */
 private class Demo(val icon: ImageVector, val title: String, val caption: String, val color: Color, val run: () -> Unit)
 
-/** «Проверка»: все примеры в одном месте — нажатие показывает событие в настоящем острове. */
+/** "Test": all examples in one place; tapping shows the event in the real island. */
 @Composable
 fun TestsScreen(onBack: () -> Unit) {
     val context = LocalContext.current
@@ -382,7 +382,7 @@ private fun demos(context: Context): List<Demo> = listOf(
     },
     Demo(Icons.Rounded.ChatBubble, tr("Сообщение", "Message"),
         tr("С кнопками «Ответить» и «Пометить прочитанным»", "With Reply and Mark as read buttons"), Tile.Blue) {
-        // Пробные кнопки: «Ответить» с полем ввода, как у Telegram и WhatsApp
+        // Test buttons: "Reply" with an input field, like Telegram and WhatsApp
         val flags = PendingIntent.FLAG_UPDATE_CURRENT or
             (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) PendingIntent.FLAG_MUTABLE else 0)
         val test = PendingIntent.getBroadcast(context, 0, Intent("com.akira.island.TEST").setPackage(context.packageName), flags)
@@ -424,7 +424,7 @@ private fun demos(context: Context): List<Demo> = listOf(
         )
     },
     Demo(Icons.Rounded.Nfc, tr("Оплата", "Payment"), tr("«К терминалу», затем «Оплачено» с суммой", "Hold near reader, then Paid with the amount"), Tile.Teal) {
-        // Как настоящая оплата: подсказка держится, пока ждём терминал, потом — «Оплачено»
+        // Like a real payment: the hint stays while waiting for the terminal, then "Paid"
         val pkg = context.packageName
         IslandBus.payReady.value = PayReady(pkg, NotificationParser.icon(context, pkg))
         IslandBus.scope.launch {
@@ -469,7 +469,7 @@ internal fun Status(ok: Boolean) {
     }
 }
 
-/** Сколько разрешений не хватает — оранжевый кружок с числом. */
+/** How many permissions are missing: an orange circle with a number. */
 @Composable
 private fun CountBadge(n: Int) {
     Box(Modifier.size(26.dp).clip(CircleShape).background(Tile.Orange), contentAlignment = Alignment.Center) {
@@ -482,7 +482,7 @@ fun Arrow() {
     Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = Ui.Sub)
 }
 
-/** Живой пример капсулы с текущими настройками: толщина, боковые части, цвет и контур. */
+/** Live preview of the capsule with current settings: thickness, side parts, color and outline. */
 @Composable
 fun IslandPreview(expanded: Boolean = false) {
     SettingsPreview(card = expanded)

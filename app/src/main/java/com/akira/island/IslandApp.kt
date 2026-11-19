@@ -18,7 +18,7 @@ class IslandApp : Application() {
         com.akira.island.data.ExtrasRepo.init(this)
         com.akira.island.service.StepRepo.start(this, IslandBus.scope)
         Lang.init(this)
-        // «Таймер от помощника»: выключено — остров не предлагается в списке, когда просят поставить таймер
+        // "Timer from assistant": off means the island isn't offered in the list when a timer is requested
         IslandBus.scope.launch {
             SettingsRepo.state.map { it.timerFromAssistant }.distinctUntilChanged().collect { on ->
                 runCatching {

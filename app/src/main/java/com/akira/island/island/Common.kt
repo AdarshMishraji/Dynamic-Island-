@@ -94,7 +94,7 @@ import kotlin.math.pow
 import kotlin.math.sqrt
 import kotlinx.coroutines.launch
 
-/** Анимация формы острова по настройкам «Стиль раскрытия», «Длительность» и «Упругость». */
+/** Island shape animation per the "Expansion style", "Duration" and "Bounciness" settings. */
 fun <T> islandSpec(s: IslandSettings): FiniteAnimationSpec<T> {
     val damping = if (s.reduceEffects) 1f else s.elasticity.damping
     return when (s.expandStyle) {
@@ -105,19 +105,19 @@ fun <T> islandSpec(s: IslandSettings): FiniteAnimationSpec<T> {
     }
 }
 
-/** Проявление и таяние содержимого острова: та же скорость, что у формы, но быстрее и без отскока. */
+/** Content fade in and out: the same speed as the shape, but faster and without bounce. */
 fun <T> fadeSpec(s: IslandSettings): FiniteAnimationSpec<T> = when (s.expandStyle) {
     ExpandStyle.INSTANT -> snap()
     ExpandStyle.SMOOTH -> tween(animDurationMs(s) / 2)
     else -> spring(stiffness = animStiffness(s) * 6f)
 }
 
-/** Жёсткость пружины в ролике (damping 12, stiffness 190, mass 0.85): остров перетекает за полсекунды с перелётом. */
+/** Spring stiffness from the video (damping 12, stiffness 190, mass 0.85): the island flows over in half a second with overshoot. */
 private const val VIDEO_STIFFNESS = 223f
 
 /**
- * «Длительность»: 0% — быстрее всего, 100% — медленнее всего. По умолчанию (35%) — ровно как в ролике;
- * в обе стороны жёсткость меняется в разы, поэтому ползунок заметен по всей длине.
+ * "Duration": 0% is fastest, 100% is slowest. The default (35%) matches the video exactly;
+ * in both directions stiffness changes severalfold, so the slider is noticeable along its whole length.
  */
 fun animStiffness(s: IslandSettings): Float {
     val t = s.durationPercent.coerceIn(0, 100) / 100f
@@ -128,15 +128,15 @@ fun animStiffness(s: IslandSettings): Float {
     }
 }
 
-/** Во сколько раз всё медленнее, чем в ролике: по ней же идут проявление содержимого и размытие. */
+/** How many times slower than in the video: content fade-in and blur follow the same factor. */
 fun motionScale(s: IslandSettings): Float = if (s.expandStyle == ExpandStyle.INSTANT) 0.5f else sqrt(VIDEO_STIFFNESS / animStiffness(s))
 
-/** Плавность из ролика: быстро в начале и долго мягко дотягивает (cubic-bezier 0.16, 1, 0.3, 1). */
+/** Easing from the video: fast at the start and a long soft settle (cubic-bezier 0.16, 1, 0.3, 1). */
 val ExpoOut = CubicBezierEasing(0.16f, 1f, 0.3f, 1f)
 
 fun animDurationMs(s: IslandSettings): Int = 160 + s.durationPercent.coerceIn(0, 100) * 6
 
-/** Текущее время (elapsedRealtime) с обновлением раз в [periodMs]; пока экран погашен — не обновляется. */
+/** Current time (elapsedRealtime) updated every [periodMs]; does not update while the screen is off. */
 @Composable
 fun rememberNow(periodMs: Long, active: Boolean = true): Long = rememberNowState(periodMs, active).value
 
@@ -155,11 +155,11 @@ fun rememberNowState(periodMs: Long, active: Boolean = true): State<Long> {
 }
 
 /**
- * Время для живых украшений — эквалайзера, свечения: обновляется с частотой из «Эффектов» (по умолчанию 60 раз
- * в секунду) и только пока горит экран. Музыка играет часами, и с полной частотой экрана остров перерисовывался бы
- * до 120 раз в секунду всё это время — телефон грелся. 60 кадров на глаз так же плавно, а работы вдвое меньше.
- * Между кадрами корутина спит почти до следующего нужного, а не просыпается на каждом кадре экрана.
- * Читать значение нужно при рисовании, тогда меняется только картинка.
+ * Time for live decorations (equalizer, glow): updates at the rate from "Effects" (60 times
+ * per second by default) and only while the screen is on. Music plays for hours, and at the full screen rate the island would be redrawn
+ * up to 120 times per second the whole time, and the phone got hot. 60 frames look just as smooth, with half the work.
+ * Between frames the coroutine sleeps almost until the next needed one instead of waking on every screen frame.
+ * The value must be read while drawing, so only the picture changes.
  */
 @Composable
 fun rememberFxClock(active: Boolean): State<Long> {
@@ -170,7 +170,7 @@ fun rememberFxClock(active: Boolean): State<Long> {
             if (!IslandBus.screenOn.value) IslandBus.screenOn.first { it }
             val fps = SettingsRepo.current.fxRate.fps
             val step = if (fps > 0) 1000L / fps else 0L
-            // Кадр экрана раньше срока пропускаем: на 120 Гц при 60 кадрах рисуется каждый второй
+            // We skip a screen frame that comes too early: at 120 Hz with 60 frames, every second one is drawn
             withInfiniteAnimationFrameMillis { t ->
                 if (t - last >= step - 3) {
                     time.longValue = t
@@ -184,15 +184,15 @@ fun rememberFxClock(active: Boolean): State<Long> {
 }
 
 /**
- * Значение «туда-обратно» за [halfMs] в каждую сторону с плавным разгоном и торможением — как
- * infiniteRepeatable(tween(halfMs, FastOutSlowInEasing), RepeatMode.Reverse), но от общего времени [t].
+ * A "back and forth" value over [halfMs] each way with smooth acceleration and deceleration, like
+ * infiniteRepeatable(tween(halfMs, FastOutSlowInEasing), RepeatMode.Reverse), but based on the shared time [t].
  */
 fun pingPong(t: Long, halfMs: Int): Float {
     val p = (t % (2L * halfMs)).toFloat() / halfMs
     return FastOutSlowInEasing.transform(if (p < 1f) p else 2f - p)
 }
 
-/** То же для настенных часов (System.currentTimeMillis). */
+/** The same for wall-clock time (System.currentTimeMillis). */
 @Composable
 fun rememberWallNow(periodMs: Long, active: Boolean = true): Long {
     var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
@@ -254,17 +254,17 @@ fun rememberHaptic(): () -> Unit {
 }
 
 /**
- * Звуковая волна из тонких полосок, как в острове iPhone. Полоски тоньше промежутков и качаются спокойно:
- * толстые и быстрые, как писали в комментариях, смотрятся плохо, особенно под медленную музыку. У каждой полоски
- * две свои скорости, поэтому движение не механическое. Высоты читаются только при рисовании:
- * кадр анимации перерисовывает полоски, а не пересобирает остров.
+ * A sound wave of thin bars, like the iPhone island. The bars are thinner than the gaps and sway calmly:
+ * thick and fast ones, as the comments described, look bad, especially with slow music. Each bar has
+ * two speeds of its own, so the motion is not mechanical. Heights are read only while drawing:
+ * an animation frame redraws the bars instead of rebuilding the island.
  */
 @Composable
 fun Equalizer(color: Color, playing: Boolean, animate: Boolean, modifier: Modifier = Modifier, bars: Int = 5) {
     val moving = playing && animate
     val time = rememberFxClock(moving)
     Canvas(modifier) {
-        // Промежуток в 1,6 раза шире полоски
+        // The gap is 1.6 times wider than the bar
         val w = size.width / (bars + (bars - 1) * 1.6f)
         for (i in 0 until bars) {
             val h = when {
@@ -286,7 +286,7 @@ fun Equalizer(color: Color, playing: Boolean, animate: Boolean, modifier: Modifi
     }
 }
 
-/** Батарейка как в iOS: заливка по уровню заряда и «носик» справа. */
+/** Battery like iOS: fill by charge level and a "nub" on the right. */
 @Composable
 fun BatteryGlyph(level: Int, color: Color, modifier: Modifier = Modifier) {
     Canvas(modifier) {
@@ -376,7 +376,7 @@ fun RoundButton(
     onClick: () -> Unit,
 ) {
     val haptic = rememberHaptic()
-    // Кнопка чуть проседает под пальцем, как на iPhone
+    // The button sinks slightly under the finger, like on iPhone
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
     val scale by animateFloatAsState(if (pressed) 0.88f else 1f, spring(dampingRatio = 0.5f, stiffness = 600f), label = "press")
@@ -416,15 +416,15 @@ fun PillButton(
     ) {
         Icon(icon, null, tint = controlTint(fg), modifier = Modifier.size(20.dp))
         Spacer(Modifier.width(6.dp))
-        // Длинная подпись («Не беспокоить», «Без звука») чуть уменьшается, а не обрезается
+        // A long label ("Do Not Disturb", "Silent") shrinks a little instead of being cut off
         FitText(text, controlTint(fg), 14.sp, 11.sp, FontWeight.Medium.island, Modifier.weight(1f, fill = false), customizable = false)
     }
 }
 
 /**
- * Знак бесконтактной оплаты (Contactless Indicator, EMVCo) — тот самый, что печатают на терминалах
- * и картах: четыре дуги, растущие вправо. Как в ролике: дуги загораются по очереди изнутри наружу,
- * полный круг — 0,8 с.
+ * Contactless payment symbol (Contactless Indicator, EMVCo): the same one printed on terminals
+ * and cards: four arcs growing to the right. As in the video: the arcs light up one by one from the inside out,
+ * a full cycle takes 0.8 s.
  */
 @Composable
 fun ContactlessWaves(color: Color, animate: Boolean, modifier: Modifier = Modifier) {
@@ -432,7 +432,7 @@ fun ContactlessWaves(color: Color, animate: Boolean, modifier: Modifier = Modifi
     val moving = if (animate) transition.animateFloat(0f, 1f, infiniteRepeatable(tween(800, easing = LinearEasing)), label = "phase") else null
     Canvas(modifier) {
         val phase = moving?.value ?: 0.6f
-        // Сетка 24×24, как у значка в ролике: центр дуг слева посередине
+        // 24×24 grid, like the icon in the video: the arcs' center is at the middle of the left side
         val k = size.minDimension / 24f
         val c = Offset(4f * k, size.height / 2)
         for (i in 0..3) {
@@ -451,7 +451,7 @@ fun ContactlessWaves(color: Color, animate: Boolean, modifier: Modifier = Modifi
     }
 }
 
-/** Зелёный круг выпрыгивает с пружиной, следом прорисовывается галочка — как «Оплачено» в ролике. */
+/** The green circle springs out, then the checkmark is drawn, like "Paid" in the video. */
 @Composable
 fun CheckBadge(color: Color, animate: Boolean, modifier: Modifier = Modifier) {
     val pop = remember { Animatable(if (animate) 0f else 1f) }
@@ -479,8 +479,8 @@ fun CheckBadge(color: Color, animate: Boolean, modifier: Modifier = Modifier) {
 }
 
 /**
- * Строка, которая уменьшает шрифт (от [max] до [min]), если не помещается, — вместо многоточия.
- * Многоточие остаётся на крайний случай: очень длинный текст или крупный шрифт Android.
+ * A line that reduces its font size (from [max] to [min]) if it does not fit, instead of an ellipsis.
+ * The ellipsis stays as a last resort: very long text or a large Android font.
  */
 @Composable
 fun FitText(
@@ -506,13 +506,13 @@ fun FitText(
             }
             sz.sp
         }
-        // Тот же стиль, по которому мерили: шрифт темы и его межбуквенный интервал
+        // The same style that was used for measuring: the theme font and its letter spacing
         Text(text, color = color, fontSize = size, fontWeight = weight, maxLines = 1, softWrap = false,
             overflow = TextOverflow.Ellipsis, style = base, customizable = customizable)
     }
 }
 
-/** Цвет кнопок карточки уведомления по настройке: сиреневый, системный, из аватара или свой. */
+/** Notification card button color per the setting: lilac, system, from the avatar, or custom. */
 @Composable
 fun rememberAccent(s: IslandSettings, adaptive: Color? = null): Color {
     val context = LocalContext.current
@@ -526,7 +526,7 @@ fun resolveAccent(context: android.content.Context, s: IslandSettings, adaptive:
     AccentMode.SYSTEM -> systemAccent(context) ?: Tints.Lavender
 }
 
-/** Акцент обоев (Material You) — светлый тон 200, хорошо читается на чёрном. Только Android 12+. */
+/** Wallpaper accent (Material You): light tone 200, reads well on black. Android 12+ only. */
 fun systemAccent(context: android.content.Context): Color? =
     if (android.os.Build.VERSION.SDK_INT >= 31) {
         runCatching { Color(context.getColor(android.R.color.system_accent1_200)) }.getOrNull()
@@ -534,19 +534,19 @@ fun systemAccent(context: android.content.Context): Color? =
         null
     }
 
-/** Чем рисовать поверх [accent]: чёрным на светлом цвете, белым на тёмном. */
+/** What to draw on top of [accent] with: black on a light color, white on a dark one. */
 fun onAccent(accent: Color): Color = if (accent.luminance() > 0.5f) Color(0xFF1B1830) else Color.White
 
 /**
- * Стрелка манёвра, как в навигаторе: прямо, налево, направо или разворот. Рисуется линией
- * со скруглёнными концами, поэтому одинаково чёткая в капсуле и в раскрытом виде.
+ * Maneuver arrow, as in a navigator: straight, left, right or U-turn. Drawn as a line
+ * with rounded ends, so it is equally crisp in the capsule and in the expanded view.
  */
 @Composable
 fun TurnArrow(turn: Turn, color: Color, modifier: Modifier = Modifier) {
     Canvas(modifier) {
         val k = size.minDimension / 100f
         fun p(x: Float, y: Float) = Offset(x * k, y * k)
-        // Рисуем «направо», налево — зеркало по горизонтали
+        // We draw "right"; left is a horizontal mirror
         val flip = turn == Turn.LEFT
         fun x(v: Float) = if (flip) 100f - v else v
         val body = Path()
@@ -557,7 +557,7 @@ fun TurnArrow(turn: Turn, color: Color, modifier: Modifier = Modifier) {
                 head.moveTo(30 * k, 40 * k); head.lineTo(50 * k, 18 * k); head.lineTo(70 * k, 40 * k)
             }
             Turn.RIGHT, Turn.LEFT -> {
-                // Как значок поворота в ролике: вверх, скругление и вправо, наконечник — уголком
+                // Like the turn icon in the video: up, a curve and right, with an angled arrowhead
                 body.moveTo(x(25f) * k, 92 * k); body.lineTo(x(25f) * k, 50 * k)
                 body.quadraticBezierTo(x(25f) * k, 33.3f * k, x(41.7f) * k, 33.3f * k); body.lineTo(x(79f) * k, 33.3f * k)
                 head.moveTo(x(62.5f) * k, 16.7f * k); head.lineTo(x(79f) * k, 33.3f * k); head.lineTo(x(62.5f) * k, 50 * k)

@@ -16,7 +16,7 @@ class UpdatePolicyTest {
         assertEquals(100L, result.sizeBytes)
     }
     @Test fun releaseKeepsTheRealApkUnderTheCurrentRepositoryName() {
-        // Так выглядит настоящий ответ releases/latest после переименования репозитория
+        // This is what a real releases/latest response looks like after the repository rename
         val result = UpdateChecker.parseRelease("""{"tag_name":"v1.7.1","assets":[
             {"name":"DynamicIsland.apk","browser_download_url":"https://github.com/Arusaky/Dynamic-Island-/releases/download/v1.7.1/DynamicIsland.apk","size":2822408}
         ]}""")!!

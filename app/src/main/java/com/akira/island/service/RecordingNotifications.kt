@@ -42,7 +42,7 @@ private val transferWords = listOf("download", "upload", "загруз", "ска
 
 private fun String.normalized() = lowercase(Locale.ROOT).replace('ё', 'е')
 internal fun isStopRecordingAction(title: String) = title.normalized().let { t ->
-    // «Приостановить запись» contains «останов», but its action is Pause, never Stop.
+    // "Приостановить запись" contains "останов", but its action is Pause, never Stop.
     !pauseWords.any { it in t } && !resumeWords.any { it in t } && stopWords.any { it in t }
 }
 internal fun isPauseRecordingAction(title: String) = title.normalized().let { t -> pauseWords.any { it in t } }

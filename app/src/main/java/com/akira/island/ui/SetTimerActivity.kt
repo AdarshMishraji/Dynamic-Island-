@@ -7,14 +7,14 @@ import com.akira.island.core.Controls
 import com.akira.island.data.SettingsRepo
 
 /**
- * «Поставь таймер на 5 минут» от голосового помощника, виджета или другого приложения: если выбрать
- * «Динамический остров», таймер сразу запускается в острове — без «Часов» и без задержки, с его кнопками.
+ * "Set a timer for 5 minutes" from a voice assistant, a widget or another app: if you choose
+ * "Dynamic Island", the timer starts right away in the island, without "Clock" and without delay, with its buttons.
  */
 class SetTimerActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         SettingsRepo.init(this)
-        // По правилам Android таймер — от 1 секунды до суток
+        // Under Android rules a timer is from 1 second to a day
         val seconds = (intent?.getIntExtra(AlarmClock.EXTRA_LENGTH, 0) ?: 0).coerceAtMost(86_400)
         if (seconds > 0) Controls.startTimerSeconds(seconds) else Controls.startTimer(SettingsRepo.current.timerMinutes)
         Controls.expand("timer")

@@ -58,8 +58,8 @@ import com.akira.island.update.localNotes
 import kotlinx.coroutines.launch
 
 /**
- * Карточка «Доступна версия X». Кнопка «Обновить» скачивает APK и открывает установку,
- * «Позже» прячет напоминание об этой версии. «Что нового» показывает список изменений из релиза.
+ * A card "Version X available". The "Update" button downloads the APK and opens the installer,
+ * "Later" hides the reminder about this version. "What's new" shows the list of changes from the release.
  */
 @Composable
 fun UpdateSection() {
@@ -125,7 +125,7 @@ fun UpdateSection() {
                     Text(d.message, color = Color(0xFFFF8A80), fontSize = 13.sp, modifier = Modifier.padding(bottom = 10.dp))
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    // Загрузка не обрывается, если уйти с экрана: она идёт в общей области приложения, как из острова
+                    // The download doesn't break if you leave the screen: it runs in the app-wide scope, as from the island
                     FilledPill(tr("Обновить", "Update")) {
                         IslandBus.scope.launch { UpdateChecker.downloadAndInstall(context.applicationContext, release) }
                     }
@@ -147,7 +147,7 @@ private fun FilledPill(text: String, onClick: () -> Unit) {
     ) { Text(text, color = Ui.OnPrimary, fontSize = 15.sp, fontWeight = FontWeight.SemiBold) }
 }
 
-/** Что показать про проверку обновлений: подпись под «Проверить сейчас». */
+/** What to show about the update check: the caption under "Check now". */
 fun updateStatusText(state: UpdateState, current: String): String = when (state) {
     UpdateState.Checking -> tr("Проверяю…", "Checking…")
     UpdateState.UpToDate -> trf("У вас последняя версия {0}", "You have the latest version {0}", current)
@@ -157,8 +157,8 @@ fun updateStatusText(state: UpdateState, current: String): String = when (state)
 }
 
 /**
- * «Что нового» после обновления: один раз показывает изменения текущей версии (assets/whatsnew.md).
- * После первой установки молчит, после обновления со старой версии — показывает.
+ * "What's new" after an update: shows the changes of the current version once (assets/whatsnew.md).
+ * After the first install it stays quiet; after an update from an older version it shows.
  */
 @Composable
 fun WhatsNewDialog() {
@@ -171,7 +171,7 @@ fun WhatsNewDialog() {
     var show by remember {
         mutableStateOf(notes != null && seen != current && (seen.isNotEmpty() || SettingsRepo.hadSavedSettings))
     }
-    // Первая установка: ничего не показываем, просто запоминаем версию
+    // First install: we show nothing, just remember the version
     LaunchedEffect(Unit) {
         if (!show && seen != current) SettingsRepo.update { copy(lastSeenVersion = current) }
     }
@@ -183,7 +183,7 @@ fun WhatsNewDialog() {
     }
 }
 
-/** Изменения текущей версии (assets/whatsnew.md): после обновления и по кнопке «Что нового» в «О приложении». */
+/** Changes of the current version (assets/whatsnew.md): after an update and via the "What's new" button in "About". */
 @Composable
 fun NotesDialog(onDismiss: () -> Unit) {
     val context = LocalContext.current
@@ -207,10 +207,10 @@ fun NotesDialog(onDismiss: () -> Unit) {
     )
 }
 
-/** Список изменений: «### Раздел» — заголовок, «- пункт» — маркер, **жирное** выделяется. */
+/** The list of changes: "### Section" is a heading, "- item" is a bullet, **bold** is highlighted. */
 @Composable
 fun ReleaseNotes(markdown: String, modifier: Modifier = Modifier) {
-    // В релизе описание на двух языках — показываем часть на языке приложения
+    // The release description is in two languages; we show the part in the app's language
     val lines = localNotes(markdown)
     Column(modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
         lines.forEach { raw ->
@@ -242,7 +242,7 @@ private fun inline(text: String): AnnotatedString = buildAnnotatedString {
     }
 }
 
-/** «Что нового» внутри приложения на его языке: свой файл языка, если он есть, иначе английский. */
+/** "What's new" inside the app in its language: its own language file if there is one, otherwise English. */
 private fun whatsNewFile(context: android.content.Context): String {
     val c = Lang.code
     if (c == "ru") return "whatsnew.md"

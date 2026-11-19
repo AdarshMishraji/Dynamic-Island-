@@ -55,12 +55,12 @@ import com.akira.island.update.UpdateChecker
 import com.akira.island.update.localNotes
 import kotlinx.coroutines.launch
 
-/** Чем писать на сиреневых кнопках — тёмным, как в ролике. */
+/** What to write on the lilac buttons with: dark, as in the video. */
 private val Ink = Color(0xFF1C1B22)
 
 /**
- * Ответ ушёл — как в ролике: сиреневый кружок с галочкой и «Отправлено», справа — кому.
- * Показывается коротко (половина «Показа событий») и сразу уступает место.
+ * Reply sent, as in the video: a lilac circle with a checkmark and "Sent", with the recipient on the right.
+ * Shown briefly (half of "Event display time") and immediately gives way.
  */
 @Composable
 fun SentBanner(n: Notice, s: IslandSettings, wideWidth: Dp) {
@@ -91,10 +91,10 @@ fun SentBanner(n: Notice, s: IslandSettings, wideWidth: Dp) {
 }
 
 /**
- * Новая версия — карточка из ролика: значок приложения, «Доступна версия», что нового и две кнопки.
- * «Обновить» сразу качает APK — на кнопке проценты, рядом кольцо, — и открывает установку; пока качается,
- * карточка не уходит. «Позже» больше не напоминает об этой версии. После установки остров один раз
- * показывает ту же карточку с галочкой: «Обновлено», «Что нового» и «Готово».
+ * New version is a card from the video: app icon, "Version available", what's new and two buttons.
+ * "Update" downloads the APK right away (percent on the button, a ring next to it) and opens the installer; while downloading,
+ * the card does not go away. "Later" stops reminding about this version. After installing, the island shows
+ * the same card once more with a checkmark: "Updated", "What's new" and "Done".
  */
 @Composable
 fun UpdateCard(n: Notice, s: IslandSettings, wideWidth: Dp) {
@@ -102,11 +102,11 @@ fun UpdateCard(n: Notice, s: IslandSettings, wideWidth: Dp) {
     val release = n.update
     val download by UpdateChecker.download.collectAsState()
     val progress = (download as? DownloadState.Running)?.progress?.takeIf { release != null }
-    // Скачалось, но установка не открылась (нужно разрешение) — «Установить» ставит уже скачанный файл
+    // Downloaded but the installer did not open (permission needed): "Install" installs the already downloaded file
     val ready = release?.let { UpdateChecker.readyFile(it, download) }
     val failed = (download as? DownloadState.Failed)?.message?.takeIf { release != null }
     val loading = progress != null
-    // Пока качается, плашка не уходит по таймеру
+    // While downloading, the banner does not leave on a timer
     DisposableEffect(loading) {
         if (loading) IslandBus.noticeHold.value = true
         onDispose { if (loading) IslandBus.noticeHold.value = false }
@@ -118,13 +118,13 @@ fun UpdateCard(n: Notice, s: IslandSettings, wideWidth: Dp) {
             Column(Modifier.weight(1f)) {
                 Text(n.title, color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.SemiBold.island, maxLines = 1,
                     overflow = TextOverflow.Ellipsis)
-                // Пока качается, справа кольцо — вместо длинной подписи коротко, что происходит
+                // While downloading, a ring on the right replaces the long label with a short note of what is happening
                 val caption = if (loading) tr("Скачивается…", "Downloading…") else n.caption
                 if (failed != null) {
-                    // Ошибку — целиком, в две строки: по ней понятно, что делать
+                    // The error in full, on two lines: it shows what to do
                     Text(failed, color = Tints.Orange, fontSize = 13.sp, lineHeight = 16.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 } else if (caption != null) {
-                    // Длинная подпись чуть уменьшается, а не обрезается
+                    // A long label shrinks a little instead of being cut off
                     FitText(caption, Tints.Gray, 13.sp, 11.sp, FontWeight.Normal.island)
                 }
             }
@@ -145,7 +145,7 @@ fun UpdateCard(n: Notice, s: IslandSettings, wideWidth: Dp) {
                 Color.White.copy(alpha = 0.1f), Color.White.copy(alpha = 0.75f)) {
                 when {
                     release == null -> Controls.openApp(context, context.packageName)
-                    // Пример из «Проверки» не должен скрыть настоящую версию
+                    // The example from "Check" must not hide the real version
                     release.apkUrl != UpdateChecker.DEMO_APK -> UpdateChecker.skip(release.version)
                 }
                 IslandBus.notice.value = null
@@ -173,7 +173,7 @@ fun UpdateCard(n: Notice, s: IslandSettings, wideWidth: Dp) {
     }
 }
 
-/** Значок приложения в карточке обновления; если его не достать — тёмный квадрат с капсулой, как в ролике. */
+/** App icon in the update card; if it cannot be obtained, a dark square with a capsule, as in the video. */
 @Composable
 private fun AppMark(n: Notice, size: Dp) {
     if (n.appIcon != null) {
@@ -197,7 +197,7 @@ private fun AppMark(n: Notice, size: Dp) {
     }
 }
 
-/** Кнопка карточки: высокая капсула во всю половину строки, чуть проседает под пальцем. */
+/** Card button: a tall capsule across half the row, sinks slightly under the finger. */
 @Composable
 private fun RowScope.CardButton(
     text: String,
@@ -237,9 +237,9 @@ private fun RowScope.CardButton(
     }
 }
 
-/** Что нового в релизе одной строкой — заголовки разделов из описания: «Плашка уведомления, Ответ из острова, Будильник». */
+/** What's new in the release on one line: the section headings from the description: "Notification banner, Reply from the island, Alarm". */
 fun releaseHighlights(notes: String): String? {
-    // В описании два языка — берём заголовки на языке острова
+    // The description has two languages; take the headings in the island's language
     val heads = localNotes(notes)
         .map { it.trim() }
         .filter { it.startsWith("### ") }

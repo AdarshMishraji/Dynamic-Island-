@@ -23,9 +23,9 @@ import com.akira.island.data.LauncherVisibility
 import com.akira.island.ui.Perms
 
 /**
- * «Не выгружать остров»: служба на переднем плане с тихим уведомлением. Процесс с такой службой Android
- * не закрывает вместе с приложением, когда его смахивают из недавних, — остров остаётся на экране.
- * Поддерживает foreground-уведомление и проверяет подключение слушателя только при включённом экране.
+ * "Keep island loaded": a foreground service with a quiet notification. Android does not kill a process with such a service
+ * together with the app when it is swiped from recents, so the island stays on screen.
+ * Keeps the foreground notification and checks the listener connection only while the screen is on.
  */
 class KeepAliveService : Service() {
     private val scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.Main.immediate)
@@ -35,8 +35,8 @@ class KeepAliveService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         SettingsRepo.init(this)
-        // Запущенная через startForegroundService служба обязана выйти на передний план, даже если её уже выключили:
-        // иначе Android закрывает приложение с ошибкой. Поэтому сначала выходим, потом при необходимости уходим
+        // A service started with startForegroundService must go foreground even if it was already turned off:
+        // otherwise Android crashes the app. So first go foreground, then stop if needed
         val shown = runCatching {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
                 startForeground(ID, notification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
@@ -75,7 +75,7 @@ class KeepAliveService : Service() {
                 setShowBadge(false)
             },
         )
-        // Нажатие открывает настройки острова
+        // Tapping opens the island settings
         val open = PendingIntent.getActivity(this, 0, LauncherVisibility.settingsIntent(this), PendingIntent.FLAG_IMMUTABLE)
         val restore = PendingIntent.getActivity(this, 1,
             Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), PendingIntent.FLAG_IMMUTABLE)
@@ -97,8 +97,8 @@ class KeepAliveService : Service() {
         private const val CHANNEL = "keep_alive"
 
         /**
-         * Запустить или остановить по настройке. Служба нужна, только пока включён сам остров (спец. возможности).
-         * Из фона Android 12+ может её не запустить — тогда она запустится, когда откроют приложение.
+         * Start or stop according to the setting. The service is needed only while the island itself (accessibility) is on.
+         * From the background, Android 12+ may not start it; then it starts when the app is opened.
          */
         fun sync(context: Context) {
             val intent = Intent(context, KeepAliveService::class.java)

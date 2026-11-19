@@ -9,7 +9,7 @@ import { Title } from "./HelloWorld/Title";
 export const RemotionRoot: React.FC = () => {
   return (
     <>
-      {/* Промо-ролик «Динамический остров для Android» — вертикальное видео */}
+      {/* Promo video “Dynamic Island for Android” — vertical video */}
       <Composition
         id="IslandPromo"
         component={IslandPromo}

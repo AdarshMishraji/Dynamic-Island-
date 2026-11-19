@@ -17,12 +17,12 @@ data class MediaInfo(
     val accent: Color,
     val durationMs: Long,
     val positionMs: Long,
-    /** SystemClock.elapsedRealtime() момента, к которому относится positionMs */
+    /** SystemClock.elapsedRealtime() of the moment positionMs refers to */
     val positionTime: Long,
     val speed: Float,
     val playing: Boolean,
     val canSeek: Boolean,
-    /** «Нравится» и «Не нравится» из самого плеера (Яндекс Музыка, YouTube Music и др.), если он их даёт */
+    /** "Like" and "Dislike" from the player itself (Yandex Music, YouTube Music, etc.), if it provides them */
     val like: PlayerAction? = null,
     val dislike: PlayerAction? = null,
 ) {
@@ -32,16 +32,16 @@ data class MediaInfo(
     }
 }
 
-/** Своя кнопка плеера: что отправить ему и включена ли она уже (трек уже нравится). */
+/** The player's own button: what to send it and whether it's already on (track already liked). */
 data class PlayerAction(val action: String, val on: Boolean)
 
 data class LyricLine(val timeMs: Long, val text: String)
 
 enum class LyricsStatus { LOADING, MISSING, FOUND }
 
-/** [synced] = false — обычный текст без временных меток; его нельзя показывать как караоке. */
+/** [synced] = false: plain text without timestamps; it must not be shown as karaoke. */
 data class Lyrics(val key: String, val lines: List<LyricLine>, val synced: Boolean = true) {
-    /** Индекс строки, которая поётся в момент [pos], или -1 до первой строки. */
+    /** Index of the line being sung at moment [pos], or -1 before the first line. */
     fun indexAt(pos: Long): Int {
         var lo = 0
         var hi = lines.size - 1
@@ -111,19 +111,19 @@ data class ChronoInfo(
     val pkg: String,
     val title: String,
     val icon: ImageBitmap?,
-    /** Notification.when — настенное время */
+    /** Notification.when is wall-clock time */
     val base: Long,
     val countDown: Boolean,
     val postTime: Long,
-    /** Кнопка «Стоп» из уведомления (запись экрана, диктофон) */
+    /** "Stop" button from the notification (screen recording, voice recorder) */
     val stop: PendingIntent? = null,
-    /** На паузе: застывшее время (таймер или секундомер «Часов») */
+    /** When paused: the frozen time (timer or stopwatch of "Clock") */
     val pausedMs: Long? = null,
-    /** Кнопки из уведомления «Часов»: остров нажимает их, не открывая приложение */
+    /** Buttons from the "Clock" notification: the island presses them without opening the app */
     val pause: PendingIntent? = null,
     val resume: PendingIntent? = null,
     val reset: PendingIntent? = null,
-    /** Тип записи подтверждён уведомлением источника; заголовок сам по себе не делает таймер диктофоном. */
+    /** Recording type is confirmed by the source notification; a title alone doesn't make a timer a voice recorder. */
     val recordingKind: RecordingKind? = null,
     /** Original notification destination; recording controls never replace missing actions with guessed intents. */
     val open: PendingIntent? = null,
@@ -131,14 +131,14 @@ data class ChronoInfo(
     fun elapsed(nowWall: Long): Long = pausedMs ?: if (countDown) (base - nowWall).coerceAtLeast(0) else nowWall - base
 
     /**
-     * Показывать уже нечего: обратный отсчёт дошёл до нуля больше 3 секунд назад, а приложение так и не убрало
-     * уведомление (иначе в острове навсегда «00:00»), или отсчёт «с начала» начинается в будущем.
+     * Nothing left to show: the countdown hit zero more than 3 seconds ago and the app never removed the
+     * notification (otherwise the island would show "00:00" forever), or a count-up starts in the future.
      */
     fun finished(nowWall: Long): Boolean = pausedMs == null &&
         (countDown && nowWall > base + DONE_MS || !countDown && base > nowWall + 60_000)
 
     companion object {
-        /** Сколько закончившийся обратный отсчёт ещё виден в острове */
+        /** How long a finished countdown stays visible in the island */
         const val DONE_MS = 3_000L
     }
 
@@ -147,14 +147,14 @@ data class ChronoInfo(
     val screenRecording: Boolean get() = recordingKind == RecordingKind.SCREEN
 }
 
-/** Звонок из уведомления звонилки: входящий или идущий разговор. */
+/** Call from the dialer's notification: incoming or ongoing. */
 data class CallInfo(
     val key: String,
     val pkg: String,
     val name: String,
     val avatar: ImageBitmap?,
     val incoming: Boolean,
-    /** Notification.when — начало разговора, настенное время */
+    /** Notification.when is the start of the call, wall-clock time */
     val base: Long,
     val postTime: Long,
     val answer: PendingIntent?,
@@ -165,10 +165,10 @@ data class CallInfo(
 
 enum class LiveKind { NAV, RIDE, DELIVERY }
 
-/** Куда поворачивать по подсказке навигатора. */
+/** Where to turn, from the navigator's hint. */
 enum class Turn { STRAIGHT, LEFT, RIGHT, UTURN }
 
-/** «Живая активность» из постоянного уведомления: навигатор, такси, доставка. */
+/** "Live activity" from an ongoing notification: navigator, taxi, delivery. */
 data class LiveInfo(
     val key: String,
     val pkg: String,
@@ -177,17 +177,17 @@ data class LiveInfo(
     val text: String,
     val sub: String,
     val icon: ImageBitmap?,
-    /** Крупная картинка из уведомления: стрелка манёвра, машина, курьер */
+    /** Large image from the notification: maneuver arrow, car, courier */
     val art: ImageBitmap?,
     val postTime: Long,
     val open: PendingIntent?,
-    /** Расстояние до манёвра или цели («300 м», «3,7 км»), если нашлось в уведомлении */
+    /** Distance to the maneuver or destination ("300 м", "3,7 км"), if found in the notification */
     val distance: String? = null,
-    /** Прибытие и время в пути («15:52 · 9 мин») */
+    /** Arrival and travel time ("15:52 · 9 мин") */
     val eta: String? = null,
-    /** Куда поворачивать — по тексту или описанию значка в уведомлении навигатора */
+    /** Where to turn, from the text or icon description in the navigator's notification */
     val turn: Turn? = null,
-    /** До какого времени (System.currentTimeMillis) показывать; 0 — пока живо само уведомление. Нужно пробной активности. */
+    /** Until when (System.currentTimeMillis) to show; 0 means as long as the notification itself lives. Needed for the test activity. */
     val expiresAt: Long = 0,
 )
 
@@ -200,7 +200,7 @@ data class TorchState(
 
 data class TimerState(
     val totalMs: Long,
-    /** SystemClock.elapsedRealtime() окончания */
+    /** SystemClock.elapsedRealtime() of the end */
     val endAt: Long,
     val pausedLeft: Long? = null,
     val ringing: Boolean = false,
@@ -218,51 +218,51 @@ data class StopwatchState(val startedAt: Long?, val accumulated: Long, val laps:
 data class BatteryInfo(
     val level: Int = -1,
     val charging: Boolean = false,
-    /** Ток и напряжение аккумулятора, если устройство отдаёт их через BatteryManager. */
+    /** Battery current and voltage, if the device exposes them via BatteryManager. */
     val currentMa: Float? = null,
     val voltageV: Float? = null,
-    /** Измеренная мощность на аккумуляторе, не номинальная мощность зарядного устройства. */
+    /** Measured power at the battery, not the charger's rated power. */
     val powerWatts: Float? = null,
-    /** До полного заряда: оценка Android либо явно отмеченная приблизительная; null — неизвестно. */
+    /** Time to full charge: Android's estimate or an explicitly marked approximate one; null means unknown. */
     val remainingMs: Long? = null,
     /** True only for an approximate rate observed during this charging session. */
     val remainingApproximate: Boolean = false,
 )
 
-/** Как событие выглядит в острове. */
+/** How the event looks in the island. */
 enum class NoticeStyle {
-    /** Широкая плашка почти во всю ширину: зарядка, наушники, Wi-Fi */
+    /** Wide banner across almost the full width: charging, headphones, Wi-Fi */
     WIDE,
-    /** Пилюля высотой со свёрнутый остров, вздрагивает при появлении: режим звука, замок */
+    /** Pill as tall as the collapsed island, shudders when it appears: ringer mode, lock */
     PILL,
-    /** Уведомление приложения: аватар, имя и текст */
+    /** App notification: avatar, name and text */
     MESSAGE,
-    /** Оплата прошла: зелёная галочка и сумма */
+    /** Payment went through: green checkmark and amount */
     PAY_DONE,
-    /** Навигатор, такси или доставка только что запустились: широкая плашка, потом капсула */
+    /** Navigator, taxi or delivery just started: wide banner, then capsule */
     LIVE,
-    /** Поставили будильник: время подъёма и сколько осталось спать */
+    /** Alarm set: wake-up time and how much sleep is left */
     ALARM,
-    /** Пасхалка: окно диалога, как в игре, — строка печатается по букве */
+    /** Easter egg: a dialog window like in a game, the line is typed letter by letter */
     EGG,
-    /** Ответ ушёл: «Отправлено» с галочкой и кому */
+    /** Reply sent: "Sent" with a checkmark and to whom */
     SENT,
-    /** Новая версия: значок приложения, что нового и кнопки «Позже» и «Обновить»; после установки — «Обновлено» */
+    /** New version: app icon, what's new, and "Later" and "Update" buttons; after install, "Updated" */
     UPDATE,
 }
 
-/** На экране — оплата телефоном: в каком приложении и его значок. Держится, пока не заплатили или не ушли. */
+/** Phone payment on screen: which app and its icon. Stays until paid or left. */
 data class PayReady(val pkg: String, val icon: ImageBitmap?)
 
 /**
- * Ближайший будильник (AlarmManager.getNextAlarmClock): когда прозвенит, какое приложение его поставило
- * и что открыть нажатием — обычно экран будильников «Часов».
+ * Next alarm (AlarmManager.getNextAlarmClock): when it rings, which app set it
+ * and what a tap opens, usually the "Clock" alarms screen.
  */
 data class AlarmInfo(val triggerAt: Long, val pkg: String?, val show: PendingIntent?)
 
 /**
- * Кнопка из уведомления: «Ответить», «Пометить прочитанным» и т. п.
- * [inputs] не пуст у кнопки с полем ответа — тогда остров показывает строку ввода.
+ * Button from the notification: "Reply", "Mark as read", etc.
+ * [inputs] is non-empty for a button with a reply field; then the island shows an input line.
  */
 class MsgAction(
     val title: String,
@@ -272,10 +272,10 @@ class MsgAction(
     val isReply: Boolean get() = inputs.isNotEmpty()
 }
 
-/** Идёт ввод ответа на уведомление [noticeId] через кнопку [action]. */
+/** A reply to notification [noticeId] is being typed via button [action]. */
 class ReplyState(val noticeId: Long, val action: MsgAction)
 
-/** Уведомление другого приложения, показанное в острове. */
+/** Another app's notification shown in the island. */
 data class AppMessage(
     val key: String,
     val pkg: String,
@@ -284,19 +284,19 @@ data class AppMessage(
     val avatar: ImageBitmap?,
     val appIcon: ImageBitmap?,
     val intent: PendingIntent?,
-    /** Кнопки из уведомления, не больше двух: ответить и ещё одна */
+    /** Buttons from the notification, at most two: reply and one more */
     val actions: List<MsgAction> = emptyList(),
-    /** Цвет, подобранный по аватару или значку приложения, — для режима «Из аватара» */
+    /** Color picked from the app's avatar or icon, for the "From avatar" mode */
     val accent: Color? = null,
-    /** Все непрочитанные сообщения переписки, новое — последним: их показывает счётчик со стрелкой */
+    /** All unread messages of the conversation, newest last: shown by the counter with an arrow */
     val history: List<String> = emptyList(),
-    /** На заблокированном экране вместо имени и текста — только название приложения, как в шторке */
+    /** On the lock screen, only the app name instead of name and text, as in the shade */
     val sensitive: Boolean = false,
-    /** Большая картинка из уведомления (BigPictureStyle) */
+    /** Large picture from the notification (BigPictureStyle) */
     val picture: ImageBitmap? = null,
 )
 
-/** Уведомление в «Истории уведомлений»: ждёт в острове, пока его не прочитают, не очистят или не выйдет время. */
+/** Notification in "Notification history": waits in the island until read, cleared, or time runs out. */
 data class InboxItem(
     val key: String,
     val pkg: String,
@@ -306,15 +306,15 @@ data class InboxItem(
     val avatar: ImageBitmap?,
     val appIcon: ImageBitmap?,
     val intent: PendingIntent?,
-    /** Когда пришло, System.currentTimeMillis */
+    /** When it arrived, System.currentTimeMillis */
     val time: Long,
     val sensitive: Boolean,
 )
 
 /**
- * Короткое событие в стиле iOS: слева значок и подпись, справа состояние.
- * [battery] рисует справа батарейку, [ring] — кольцо (например, заряд наушников),
- * [caption] — мелкая серая строка над подписью («Подключено»).
+ * Short iOS-style event: icon and label on the left, state on the right.
+ * [battery] draws a battery on the right, [ring] a ring (e.g. headphone charge),
+ * [caption] is a small gray line above the label ("Подключено").
  */
 data class Notice(
     val title: String,
@@ -327,19 +327,19 @@ data class Notice(
     val style: NoticeStyle = NoticeStyle.WIDE,
     val message: AppMessage? = null,
     /**
-     * Насколько дольше «Показа событий» (Анимации → Показ событий) держать плашку: сообщению с кнопками
-     * нужно успеть нажать, оплате — приложить телефон. Всё считается от этой настройки.
+     * How much longer than "Event display" (Animations → Event display) to keep the banner: a message with buttons
+     * needs time to press, a payment needs time to tap the phone. Everything is counted from this setting.
      */
     val extraMs: Long = 0,
-    /** Значок приложения, например банка при оплате */
+    /** App icon, e.g. of the bank when paying */
     val appIcon: ImageBitmap? = null,
-    /** Данные «живой активности» для плашки NoticeStyle.LIVE */
+    /** "Live activity" data for the NoticeStyle.LIVE banner */
     val live: LiveInfo? = null,
-    /** Какое приложение открыть нажатием на плашку (например, само это — «Доступна новая версия») */
+    /** Which app to open when the banner is tapped (e.g. this very app for "New version available") */
     val openPkg: String? = null,
-    /** Будильник для плашки NoticeStyle.ALARM */
+    /** Alarm for the NoticeStyle.ALARM banner */
     val alarm: AlarmInfo? = null,
-    /** Новая версия для плашки NoticeStyle.UPDATE; null — уже обновились */
+    /** New version for the NoticeStyle.UPDATE banner; null means already updated */
     val update: com.akira.island.update.Release? = null,
     val id: Long = ids.incrementAndGet(),
 ) {

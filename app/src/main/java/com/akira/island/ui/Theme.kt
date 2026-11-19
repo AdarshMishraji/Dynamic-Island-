@@ -5,7 +5,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
-/** Тёмная тема с лавандовым акцентом, как на скриншотах. */
+/** A dark theme with a lavender accent, as in the screenshots. */
 object Ui {
     val Bg = Color(0xFF16151B)
     val Card = Color(0xFF27262D)
@@ -20,7 +20,7 @@ object Ui {
     val Outline = Color(0xFF908D99)
 }
 
-/** Цвета значков у пунктов настроек — как в «Настройках» iPhone: у каждой категории свой. */
+/** The icon colors for the settings items are like in iPhone "Settings": each category has its own. */
 object Tile {
     val Blue = Color(0xFF0A84FF)
     val Green = Color(0xFF34C759)

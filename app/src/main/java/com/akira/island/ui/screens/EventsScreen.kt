@@ -49,7 +49,7 @@ import com.akira.island.ui.Pos
 import com.akira.island.ui.SectionHeader
 import com.akira.island.ui.Tile
 
-/** «События»: короткие плашки о том, что произошло, — по разделам. */
+/** "Events": short banners about what happened, by section. */
 @Composable
 fun EventsScreen(onBack: () -> Unit) {
     val s by SettingsRepo.state.collectAsState()

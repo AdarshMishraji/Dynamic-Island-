@@ -13,35 +13,35 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
- * Что видно на экране приложения оплаты: экран оплаты телефоном, суммы и слова об оплате.
- * Отдельно от чтения экрана, чтобы разбор можно было проверить без телефона.
+ * What is visible on the payment app screen: the phone payment screen, amounts and payment words.
+ * Separate from screen reading, so the parsing can be tested without a phone.
  */
 object PayScreenParser {
     private val spaces = Regex("[\\u00A0\\u202F\\u2007\\u2009]")
 
-    /** Сумма с разрядами и копейками: «89,99», «1 250», «50.000», «12500.5» */
+    /** An amount with thousands separators and decimals: "89,99", "1 250", "50.000", "12500.5" */
     private const val NUMBER = """\d{1,3}(?:[ .,]?\d{3})*(?:[.,]\d{1,2})?"""
-    /** Валюта после суммы: «350 ₽», «12.50 USD», «500р» */
+    /** Currency after the amount: "350 ₽", "12.50 USD", "500р" */
     private const val CURRENCY = """₽|руб\.?|р\.?(?!\p{L})|RUB|RUR|USD|EUR|GBP|KZT|UAH|BYN|CNY|TRY|INR|IDR|PHP|MYR|THB|VND|BRL|""" +
         """AMD|GEL|UZS|AZN|KGS|€|£|₸|₴|₹|₱|₩|¥|฿|₫|₺|\$"""
-    /** Валюта перед суммой: «$12.50», «Rp 50.000», «₹500» */
+    /** Currency before the amount: "$12.50", "Rp 50.000", "₹500" */
     private const val PREFIX = """[$€£₹₱₩¥฿₫₺₸]|R\$|Rp|RM|RUB|USD|EUR|INR|IDR|PHP|MYR|THB|KZT"""
 
-    /** Списание на экране: «−89,99 ₽», «- 1 250 ₽», «–$12.50». Нужна валюта или копейки — иначе это не деньги. */
+    /** A charge on screen: "−89,99 ₽", "- 1 250 ₽", "–$12.50". A currency or decimals are required, otherwise it isn't money. */
     private val charge = Regex(
         """(?<![\p{L}\p{N}])[−–-]\s?(?:($NUMBER)\s?($CURRENCY)?|($PREFIX)\s?($NUMBER))""",
         RegexOption.IGNORE_CASE,
     )
 
-    /** Сумма с валютой где угодно в тексте. Перед ней не цифра и не звёздочка — «*1234» это номер карты. */
+    /** An amount with a currency anywhere in the text. It isn't preceded by a digit or an asterisk, since "*1234" is a card number. */
     private val amount = Regex(
         """(?<![\d*])$NUMBER\s?(?:$CURRENCY)|(?<!\p{L})(?:$PREFIX)\s?$NUMBER""",
         RegexOption.IGNORE_CASE,
     )
 
     /**
-     * Экран оплаты телефоном: «Для оплаты поднесите телефон к терминалу», «Приложите смартфон к платёжному
-     * терминалу», «Hold your phone up to the terminal», «Hold near reader», «Готово к оплате».
+     * The phone payment screen: "Для оплаты поднесите телефон к терминалу", "Приложите смартфон к платёжному
+     * терминалу", "Hold your phone up to the terminal", "Hold near reader", "Готово к оплате".
      */
     private val readyWords = Regex(
         "(подне|прилож|поднос|приклад)\\S*\\s+(\\S+\\s+){0,3}?к\\s+(\\S+\\s+)?(терминал|считыва|ридер)|" +
@@ -50,7 +50,7 @@ object PayScreenParser {
         RegexOption.IGNORE_CASE,
     )
 
-    /** Оплата прошла — так её подписывают на экране результата. */
+    /** Payment succeeded: this is how the result screen labels it. */
     private val paidWords = Regex(
         "оплачено|оплачена|оплата прошла|оплата выполнена|оплата совершена|оплата успешна|успешная оплата|покупка совершена|" +
             "покупка прошла|платёж выполнен|платеж выполнен|платёж прошёл|платеж прошел|payment successful|payment complete|" +
@@ -63,7 +63,7 @@ object PayScreenParser {
         RegexOption.IGNORE_CASE,
     )
 
-    /** Все списания в строке — как их показать: «89,99 ₽», «$12.50». */
+    /** All charges in a line, formatted for display: "89,99 ₽", "$12.50". */
     fun charges(text: String): List<String> {
         val t = normalize(text)
         return charge.findAll(t).mapNotNull { m ->
@@ -77,30 +77,30 @@ object PayScreenParser {
         }.toList()
     }
 
-    /** Пробелы внутри чисел (неразрывные, узкие) — обычные, чтобы суммы находились одинаково. */
+    /** Spaces inside numbers (non-breaking, narrow) are made plain so that amounts are matched the same way. */
     fun normalize(text: String) = text.replace(spaces, " ")
 
-    /** Первая сумма с валютой в тексте: «89,99 ₽», «1 250 руб.», «$12.50», «Rp 50.000». */
+    /** The first amount with a currency in the text: "89,99 ₽", "1 250 руб.", "$12.50", "Rp 50.000". */
     fun amount(text: String): String? = amount.find(normalize(text))?.value?.trim()
 
-    /** Экран оплаты телефоном. */
+    /** The phone payment screen. */
     fun ready(text: String) = readyWords.containsMatchIn(normalize(text))
 
-    /** «Оплачено», «Оплата прошла» — и не «Оплата не прошла». */
+    /** "Оплачено", "Оплата прошла", and not "Оплата не прошла". */
     fun paid(text: String) = paidWords.containsMatchIn(text) && !failureWords.containsMatchIn(text)
 
     fun failure(text: String) = failureWords.containsMatchIn(text)
 }
 
 /**
- * Экран приложения оплаты, пока оно открыто. Остров ждёт двух вещей:
- *  - экрана оплаты телефоном («Поднесите телефон к терминалу», T-Pay, SberPay, Mir Pay, Яндекс Пэй…) —
- *    тогда в острове «Оплата · К терминалу», и она держится, пока не заплатите или не выйдете;
- *  - суммы оплаты («−89,99 ₽») — тогда сразу «Оплачено», не дожидаясь уведомления банка. Учитывается только
- *    списание, которого не было на экране, когда показался экран оплаты, и только если оно на экране одно —
- *    так история операций не принимается за оплату. Если приложение само открылось уже с результатом
- *    (заплатили, не открывая его), нужно ещё «Оплачено» на экране.
- * Изменения экрана приходят, только пока такое приложение открыто; разбирается он не чаще раза в 0,4 с.
+ * The payment app screen while it is open. The island waits for two things:
+ *  - the phone payment screen ("Hold your phone to the terminal", T-Pay, SberPay, Mir Pay, Yandex Pay...);
+ *    then the island shows "Payment · To terminal", and it stays until you pay or leave;
+ *  - a payment amount ("−89,99 ₽"); then right away "Paid", without waiting for the bank notification. Only a
+ *    charge that wasn't on the screen when the payment screen appeared counts, and only if it is the only one on the screen,
+ *    so the transaction history isn't taken for a payment. If the app itself opened already showing the result
+ *    (you paid without opening it), "Paid" must also be on the screen.
+ * Screen changes arrive only while such an app is open; it is parsed no more than once per 0.4 s.
  */
 class PayScreenReader(private val service: AccessibilityService, private val scope: CoroutineScope) {
     val active: Boolean get() = current != null
@@ -110,15 +110,15 @@ class PayScreenReader(private val service: AccessibilityService, private val sco
     private var readyAt = 0L
     private var baseline: MutableSet<String>? = null
     private var done = false
-    /** Новые надписи прошлого разбора — тот же экран второй раз не разбираем */
+    /** The new texts from the last parse; we don't parse the same screen twice */
     private var lastFresh: List<String>? = null
     private var lastScan = 0L
     private var scanJob: Job? = null
     private var stopJob: Job? = null
 
-    /** Новое окно: другое приложение — начинаем заново; окно оплаты в том же — экран оплаты. */
+    /** A new window: a different app starts over; a payment window in the same app is the payment screen. */
     fun onForeground(pkg: String, cls: String) {
-        // Системное окно поверх приложения оплаты — читаем дальше, когда оно уйдёт
+        // A system window over the payment app: we keep reading when it goes away
         if (current != null && PayMonitor.overlay(pkg)) return
         if (pkg == current) {
             if (done && payWindow(cls)) {
@@ -137,7 +137,7 @@ class PayScreenReader(private val service: AccessibilityService, private val sco
         if (payWindow(cls)) markReady(pkg)
     }
 
-    /** Окно «Оплата» сервисов Google поверх любого приложения: читаем его минуту, пока оно на экране. */
+    /** The Google services "Payment" window over any app: we read it for a minute while it is on screen. */
     fun onTapAndPay() {
         if (current != PayMonitor.GMS) {
             stop()
@@ -176,7 +176,7 @@ class PayScreenReader(private val service: AccessibilityService, private val sco
         schedule(300)
     }
 
-    /** Окна оплаты телефоном у некоторых приложений называются прямо так — NFC, HCE, бесконтактная оплата. */
+    /** Phone payment windows in some apps are literally called that: NFC, HCE, contactless payment. */
     private fun payWindow(cls: String) = PayWindow.containsMatchIn(cls)
 
     private fun markReady(pkg: String, texts: Set<String>? = null) {
@@ -191,7 +191,7 @@ class PayScreenReader(private val service: AccessibilityService, private val sco
 
     private fun schedule(wait: Long) {
         if (scanJob?.isActive == true) return
-        // Не чаще раза в 0,4 с, пока ждём экран оплаты, — банк листают долго, а батарею жалко
+        // No more than once per 0.4 s while waiting for the payment screen, since people scroll a bank app for a long time and we want to save battery
         val gap = if (readyAt != 0L) 0L else (400 - (SystemClock.elapsedRealtime() - lastScan)).coerceAtLeast(0)
         scanJob = scope.launch {
             delay(maxOf(wait, gap))
@@ -203,7 +203,7 @@ class PayScreenReader(private val service: AccessibilityService, private val sco
         val pkg = current ?: return
         val now = SystemClock.elapsedRealtime()
         lastScan = now
-        // Оплату после экрана оплаты ждём не дольше трёх минут — дальше экран не разбираем
+        // We wait for the payment after the payment screen for no more than three minutes; after that we don't parse the screen
         if (!done && readyAt != 0L && now - readyAt > PayMonitor.PAY_WINDOW_MS) {
             done = true
             return
@@ -222,7 +222,7 @@ class PayScreenReader(private val service: AccessibilityService, private val sco
             return
         }
 
-        // Экран оплаты телефоном — подсказка в острове
+        // The phone payment screen: a hint in the island
         if (readyAt == 0L && texts.any { PayScreenParser.ready(it) }) {
             markReady(pkg, texts)
             return
@@ -230,35 +230,35 @@ class PayScreenReader(private val service: AccessibilityService, private val sco
         val all = texts.flatMap { PayScreenParser.charges(it) }.distinct()
         if (readyAt != 0L) {
             val base = baseline ?: return
-            // Экран оплаты ещё дорисовывается — всё на нём «как было», а не оплата
+            // The payment screen is still being drawn: everything on it is "as it was", not a payment
             if (paymentBaselinePending(now - readyAt, base, texts)) {
                 base += texts
                 return
             }
             val fresh = texts.filter { it !in base }
-            // Экран не изменился с прошлого раза — разбирать нечего (пока ждём оплату, он меняется часто)
+            // The screen hasn't changed since last time, nothing to parse (while waiting for payment it changes often)
             if (fresh == lastFresh) return
             lastFresh = fresh
             logAfterReady(pkg, fresh, now)
             if (texts.any { PayScreenParser.failure(it) }) return
             val freshCharges = fresh.flatMap { PayScreenParser.charges(it) }.distinct()
-            // У кошелька сумма на экране — это и есть оплата. У банка в нём бывает и история операций,
-            // поэтому нужно ещё «Оплачено» или чтобы экран оплаты был на виду
+            // For a wallet, an amount on the screen is the payment. A bank's screen may also have a transaction history,
+            // so it also needs "Paid", or the payment screen must have been in view
             if (all.size == 1 && freshCharges.size == 1 &&
                 texts.any { PayScreenParser.paid(it) }
             ) {
                 return paid(pkg, freshCharges[0])
             }
-            // Экран результата часто без минуса: «Оплата прошла» и одна новая сумма с валютой — «350 ₽»
+            // The result screen is often without a minus: "Payment succeeded" and one new amount with a currency: "350 ₽"
             if (fresh.any { PayScreenParser.paid(it) }) {
                 val sums = fresh.mapNotNull { PayScreenParser.amount(it) }.distinct()
                 if (sums.size == 1) return paid(pkg, sums[0])
-                // Экран говорит «оплата прошла», но суммы на нём нет — показываем «Оплачено» без суммы
+                // The screen says "payment succeeded" but has no amount: we show "Paid" without an amount
                 if (sums.isEmpty()) return paid(pkg, "")
                 PayDebug.add(trf("«Оплачено» на экране, но сумм: {0}", "“Paid” on screen, but amounts: {0}", sums.size), pkg, fresh.joinToString(" | "))
             }
         } else if (now - since < 4_000 && all.size == 1 && texts.any { PayScreenParser.paid(it) } && texts.none { PayScreenParser.failure(it) }) {
-            // Приложение открылось само уже с результатом: заплатили, не открывая его
+            // The app opened itself already showing the result: you paid without opening it
             paid(pkg, all[0])
         }
     }
@@ -267,8 +267,8 @@ class PayScreenReader(private val service: AccessibilityService, private val sco
     private var screenLoggedAt = 0L
 
     /**
-     * Для «Диагностики оплаты»: что появилось на экране после экрана оплаты. Не чаще раза в две секунды и не
-     * больше шести записей за оплату; длинные цифры (номера карт) скрыты, хранится только в памяти.
+     * For "Payment diagnostics": what appeared on screen after the payment screen. No more than once per two seconds and no
+     * more than six entries per payment; long digit strings (card numbers) are hidden, kept in memory only.
      */
     private fun logAfterReady(pkg: String, fresh: List<String>, now: Long) {
         if (fresh.isEmpty() || screenLogs >= 6 || now - screenLoggedAt < 2_000) return
