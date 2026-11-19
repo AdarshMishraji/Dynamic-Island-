@@ -114,6 +114,11 @@ class NotifListener : NotificationListenerService() {
         fun dismiss(key: String): Boolean = actions.dismiss(key)
 
         fun dismissAll(keys: List<String>): Int = actions.dismissAll(keys)
+
+        fun dismissEverything() {
+            runCatching { connected?.cancelAllNotifications() }
+            Inbox.clear()
+        }
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {

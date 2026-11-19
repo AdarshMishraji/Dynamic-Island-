@@ -1,5 +1,6 @@
 package com.akira.island.ui.screens
 
+import androidx.compose.foundation.layout.Spacer
 import com.akira.island.island.PreviewScene
 import androidx.compose.runtime.saveable.rememberSaveable
 
@@ -201,6 +202,11 @@ fun AnimScreen(onBack: () -> Unit) {
     Page(tr("Раскрытие острова", "Island expansion"), onBack, action = {
         Text(tr("Сброс", "Reset"), color = Ui.Sub, fontSize = 16.sp, modifier = Modifier.clickable { SettingsRepo.resetAnimations() })
     }, preview = { SettingsPreview(previewOpen, onExpand = { previewOpen = !previewOpen }) }) {
+        SectionHeader(tr("Скорость", "Speed"))
+        ChoiceStrip(listOf(75, 35, 10), s.durationPercent,
+            { when (it) { 75 -> tr("Медленно", "Slow"); 35 -> tr("Обычно", "Normal"); else -> tr("Быстро", "Fast") } },
+            { v -> SettingsRepo.update { copy(durationPercent = v) } })
+        Spacer(Modifier.height(12.dp))
         Group {
             GroupItem(Pos.First, Icons.Rounded.Animation, tr("Стиль раскрытия", "Expansion style"), s.expandStyle.title, color = Tile.Purple,
                 onClick = { styleDialog = true })

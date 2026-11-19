@@ -71,6 +71,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.Flag
 import androidx.compose.material.icons.rounded.FavoriteBorder
 import androidx.compose.material.icons.rounded.HeartBroken
 import androidx.compose.material.icons.rounded.PhotoCamera
@@ -558,11 +559,14 @@ private fun TimerExpanded(t: TimerState, s: IslandSettings) {
 private fun StopwatchExpanded(w: StopwatchState) {
     val now = rememberNow(100, active = w.running)
     val elapsed = w.elapsed(now)
+    Column {
     Row(verticalAlignment = Alignment.CenterVertically) {
         RoundButton(if (w.running) Ios.pause else Ios.play, size = 50.dp,
             bg = Tints.Orange.copy(alpha = 0.25f), fg = Tints.Orange, iconScale = 0.5f) { Controls.toggleStopwatch() }
         Spacer(Modifier.width(12.dp))
         if (w.running) {
+            RoundButton(Icons.Rounded.Flag, size = 50.dp, bg = Color.White.copy(alpha = 0.2f), iconScale = 0.46f) { Controls.lapStopwatch() }
+            Spacer(Modifier.width(12.dp))
             RoundButton(Ios.close, size = 50.dp, bg = Color.White.copy(alpha = 0.2f), iconScale = 0.44f) { Controls.stopStopwatch() }
         } else {
             RoundButton(Ios.refresh, size = 50.dp, bg = Color.White.copy(alpha = 0.2f), iconScale = 0.46f) {
@@ -574,7 +578,20 @@ private fun StopwatchExpanded(w: StopwatchState) {
         Text(formatDuration(elapsed) + ",%d".format((elapsed % 1000) / 100), color = Tints.Orange, fontSize = 40.sp,
             style = Digits.copy(fontWeight = FontWeight.Normal.island), maxLines = 1)
     }
+    // The latest laps: the time of the lap itself on the left, the total on the right
+    w.laps.withIndex().toList().takeLast(3).asReversed().forEach { (i, total) ->
+        val split = total - (w.laps.getOrNull(i - 1) ?: 0L)
+        Row(Modifier.fillMaxWidth().padding(top = 8.dp)) {
+            Text(trf("Круг {0}", "Lap {0}", i + 1), color = Dim, fontSize = 14.sp, modifier = Modifier.weight(1f))
+            Text(lapTime(split), color = Color.White, fontSize = 14.sp, style = Digits)
+            Spacer(Modifier.width(14.dp))
+            Text(lapTime(total), color = Dim, fontSize = 14.sp, style = Digits)
+        }
+    }
+    }
 }
+
+private fun lapTime(ms: Long): String = formatDuration(ms) + ",%d".format((ms % 1000) / 100)
 
 /**
  * Фонарик — как в ролике: квадратная карточка, посередине жёлтый фонарик в мягком свечении, под ним
@@ -886,6 +903,7 @@ private fun IdleExpanded(s: IslandSettings, battery: BatteryInfo) {
     val pattern = when (Lang.code) {
         "en" -> "EEEE, MMMM d"
         "pt" -> "EEEE, d 'de' MMMM"
+        "ja", "zh" -> "M月d日 EEEE"
         else -> "EEEE, d MMMM"
     }
     val date = SimpleDateFormat(pattern, Lang.locale).format(Date(now))

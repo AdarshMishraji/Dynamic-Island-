@@ -167,6 +167,16 @@ fun EventsScreen(onBack: () -> Unit) {
 
         com.akira.island.face.FaceSettings(s.faceUnlockOnly) { set { copy(faceUnlockOnly = it) } }
 
+        SectionHeader(tr("Время", "Time"))
+        Group {
+            GroupToggle(Pos.First, Icons.Rounded.Schedule, tr("Тик каждый час", "Tick on the hour"),
+                tr("Короткая плашка с временем в начале каждого часа", "A short banner with the time at the start of every hour"),
+                s.hourTick, color = Tile.Blue) { set { copy(hourTick = it) } }
+            GroupToggle(Pos.Last, Icons.Rounded.WbTwilight, tr("Время суток", "Times of day"),
+                tr("Свой значок на рассвете, днём, на закате и в полночь", "Their own glyph at sunrise, afternoon, sunset and midnight"),
+                s.dayMoments, color = Tile.Orange) { set { copy(dayMoments = it) } }
+        }
+
         SectionHeader(tr("Другое", "Other"))
         Group {
             GroupToggle(Pos.First, Icons.Rounded.Alarm, tr("Будильник поставлен", "Alarm set"),
@@ -241,6 +251,8 @@ private fun eventExample(old: IslandSettings, s: IslandSettings): Notice? {
         Triple(old.evBrightness != s.evBrightness, tr("Яркость", "Brightness"), Icons.Rounded.BrightnessAuto),
         Triple(old.evPayReady != s.evPayReady || old.payHintOnOpen != s.payHintOnOpen, tr("К терминалу", "Hold near reader"), Icons.Rounded.Nfc),
         Triple(old.evPaySuccess != s.evPaySuccess, tr("Оплачено", "Paid"), Icons.Rounded.CheckCircle),
+        Triple(old.hourTick != s.hourTick, tr("Время", "Time"), Icons.Rounded.Schedule),
+        Triple(old.dayMoments != s.dayMoments, tr("Время суток", "Times of day"), Icons.Rounded.WbTwilight),
         Triple(old.evAlarmSet != s.evAlarmSet, tr("Будильник", "Alarm"), Icons.Rounded.Alarm),
         Triple(old.evLock != s.evLock || old.evUnlock != s.evUnlock, tr("Блокировка", "Lock"), Icons.Rounded.Lock),
     ).firstOrNull { it.first } ?: return null

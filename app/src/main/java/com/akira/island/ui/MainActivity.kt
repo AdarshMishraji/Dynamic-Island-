@@ -102,7 +102,7 @@ import com.akira.island.update.UpdateChecker
 
 enum class Screen {
     CARDS, EVENTS, GESTURES, LYRICS, SIZE, COLORS, INSTRUCTION, ABOUT, DIAG, LOOK, ANIM, EFFECTS, BANNERS,
-    PERMISSIONS, TESTS, NOTIFICATIONS, BEHAVIOR, PAYDIAG, KEEPALIVE, BANKS, NOTIF_APPS, NOTIF_DIAG, FONT, EXTRAS, SEARCH, LAUNCHER, SUPPORT,
+    PERMISSIONS, TESTS, NOTIFICATIONS, BEHAVIOR, PAYDIAG, KEEPALIVE, BANKS, NOTIF_APPS, NOTIF_DIAG, FONT, EXTRAS, SEARCH, LAUNCHER, SUPPORT, HISTORY,
 }
 
 class MainActivity : ComponentActivity() {
@@ -214,6 +214,7 @@ private fun AppRoot(launcherSettingsRequest: Int) {
                     Screen.TESTS.name -> TestsScreen(back)
                     Screen.NOTIFICATIONS.name -> NotificationsScreen(back, open)
                     Screen.NOTIF_APPS.name -> NotifAppsScreen(back)
+                    Screen.HISTORY.name -> com.akira.island.ui.screens.HistoryScreen(back)
                     Screen.NOTIF_DIAG.name -> NotifDiagScreen(back)
                     Screen.FONT.name -> FontScreen(back)
                     Screen.BEHAVIOR.name -> BehaviorScreen(back)

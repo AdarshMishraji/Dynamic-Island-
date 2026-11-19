@@ -84,6 +84,8 @@ import kotlin.math.floor
  */
 class IslandService : AccessibilityService() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private var privacy: AutoCloseable? = null
+    private var inExemptApp = false
     private val handler = Handler(Looper.getMainLooper())
     private var wm: WindowManager? = null
     private var display: FrameLayout? = null
@@ -144,6 +146,7 @@ class IslandService : AccessibilityService() {
     private var visible = true
     private var body = Rect.Zero
     private var bubble = Rect.Zero
+    private var third = Rect.Zero
     /** С какого момента (uptimeMillis) окно касаний ждёт перекладки; 0 — не ждёт */
     private var touchSince = 0L
     private val touchUpdate = Runnable {
@@ -222,6 +225,8 @@ class IslandService : AccessibilityService() {
         KeepAliveService.sync(this)
         IslandTile.refresh(this)
         events = SystemEvents(this).also { runCatching { it.start() } }
+        HourTick.start(this, scope)
+        privacy = PrivacyMonitor.start(this)
         keyguardShown = keyguard?.isKeyguardLocked == true
         torch = TorchController(this).also { runCatching { it.start() } }
         alarm = TimerAlarm(this, scope).also { runCatching { it.start() } }
@@ -263,6 +268,7 @@ class IslandService : AccessibilityService() {
                     ServiceCommand.TURN_OFF -> disableSelf()
                     ServiceCommand.SCROLL_TOP -> scrollToTop?.request()
                     ServiceCommand.QUICK_SETTINGS -> performGlobalAction(GLOBAL_ACTION_QUICK_SETTINGS)
+                    ServiceCommand.SHADE -> performGlobalAction(GLOBAL_ACTION_NOTIFICATIONS)
                 }
             }
         }
@@ -372,6 +378,7 @@ class IslandService : AccessibilityService() {
                                 // До целых пикселей: доли пикселя в конце пружины не двигают окна
                                 onBodyBounds = { r -> val q = r.snapped(); if (q != body) { body = q; onBoundsChanged() } },
                                 onBubbleBounds = { r -> val q = r.snapped(); if (q != bubble) { bubble = q; onBoundsChanged() } },
+                                onThirdBounds = { r -> val q = r.snapped(); if (q != third) { third = q; onBoundsChanged() } },
                                 onBackdropSampler = { sampler ->
                                     backdropSampler = sampler
                                     if (sampler == null) { backdropGeometry = null; scheduleBackdrop() }
@@ -508,7 +515,8 @@ class IslandService : AccessibilityService() {
         }
         visible = s.enabled && !(s.hideWhileRecording && IslandBus.chrono.value.values.any { it.screenRecording }) &&
             !(landscape && s.landscape == LandscapeMode.HIDE) && !IslandBus.offSchedule.value &&
-            !(keyguard && s.lockScreen == LockScreenMode.HIDE) && !(s.hideOnAod && isAmbientDisplay())
+            !(keyguard && s.lockScreen == LockScreenMode.HIDE) && !(s.hideOnAod && isAmbientDisplay()) &&
+            IslandBus.foregroundPackage.value !in s.exemptApps
         // «У камеры»: в альбомной ориентации остров повёрнут к краю с камерой; иначе — как обычно, сверху
         val turn = if (landscape && s.landscape == LandscapeMode.CAMERA) rotation else 0
         IslandBus.contentRotation.value = turn
@@ -592,14 +600,11 @@ class IslandService : AccessibilityService() {
 
     private fun updateTouchWindow() {
         val view = touch ?: return
-        val area = when {
-            body.isEmpty -> bubble
-            bubble.isEmpty -> body
-            else -> Rect(
-                minOf(body.left, bubble.left), minOf(body.top, bubble.top),
-                maxOf(body.right, bubble.right), maxOf(body.bottom, bubble.bottom),
-            )
-        }
+        // The island plus whichever pills are showing beside it
+        val shown = listOf(body, bubble, third).filterNot { it.isEmpty }
+        val area = if (shown.isEmpty()) Rect.Zero else Rect(
+            shown.minOf { it.left }, shown.minOf { it.top }, shown.maxOf { it.right }, shown.maxOf { it.bottom },
+        )
         val usable = visible && !area.isEmpty
         val origin = IntArray(2)
         display?.getLocationOnScreen(origin)
@@ -825,6 +830,12 @@ class IslandService : AccessibilityService() {
         setScreenEvents(clockReader?.active == true || payReader?.active == true)
         IslandBus.foregroundPackage.value = pkg
         com.akira.island.island.RecentApps.push(pkg)
+        // Games and video: the island switches itself off in front of the chosen apps, and back on when they leave
+        val exempt = pkg in SettingsRepo.current.exemptApps
+        if (exempt != inExemptApp) {
+            inExemptApp = exempt
+            applyCurrentSettings()
+        }
     }
 
     /**
@@ -875,6 +886,7 @@ class IslandService : AccessibilityService() {
         IslandBus.shadeOpen.value = false
         IslandTile.refresh(this)
         events?.stop()
+        runCatching { privacy?.close() }; privacy = null
         torch?.stop()
         alarm?.stop()
         calls?.stop()

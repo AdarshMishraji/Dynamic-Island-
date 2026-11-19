@@ -206,12 +206,27 @@ fun rememberWallNow(periodMs: Long, active: Boolean = true): Long {
     return now
 }
 
+/** A tap with an explicit strength, where the vibrator can vary it; false when it can't, so the normal feedback is used. */
+private fun vibrateWithStrength(context: Context, strength: Int): Boolean = runCatching {
+    val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        context.getSystemService(VibratorManager::class.java)?.defaultVibrator
+    } else {
+        @Suppress("DEPRECATION")
+        context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+    }
+    if (vibrator?.hasVibrator() != true || !vibrator.hasAmplitudeControl()) return@runCatching false
+    vibrator.vibrate(VibrationEffect.createOneShot(12, (255 * strength / 200f).toInt().coerceIn(1, 255)))
+    true
+}.getOrDefault(false)
+
 @Composable
 fun rememberHaptic(): () -> Unit {
     val view = LocalView.current
     val context = LocalContext.current
     return remember(view, context) {
         {
+            val strength = SettingsRepo.current.hapticStrength
+            if (SettingsRepo.current.haptics && strength != 100 && vibrateWithStrength(context, strength)) return@remember
             if (SettingsRepo.current.haptics) {
                 val performed = view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                 val systemHaptics = !performed && runCatching {

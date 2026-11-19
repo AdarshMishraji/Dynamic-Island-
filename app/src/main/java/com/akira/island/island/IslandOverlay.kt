@@ -121,6 +121,8 @@ import com.akira.island.data.MessageStyle
 import com.akira.island.data.ExpandStyle
 import com.akira.island.data.IslandSettings
 import com.akira.island.data.SettingsRepo
+import com.akira.island.data.SwipeAction
+import com.akira.island.data.LockScreenMode
 import com.akira.island.data.shouldTimeOutIdle
 import com.akira.island.data.TapAction
 import com.akira.island.service.CallMonitor
@@ -152,6 +154,7 @@ private data class Frame(val act: Act, val expanded: Boolean) {
 fun IslandOverlay(
     onBodyBounds: (Rect) -> Unit = {},
     onBubbleBounds: (Rect) -> Unit = {},
+    onThirdBounds: (Rect) -> Unit = {},
     onBackdropShape: ((BackdropGeometry) -> Unit)? = null,
     onBackdropSampler: (((() -> Unit)?) -> Unit)? = null,
 ) {
@@ -183,6 +186,7 @@ fun IslandOverlay(
     val hotspot by com.akira.island.service.HotspotMonitor.state.collectAsState()
     val shadeOpen by IslandBus.shadeOpen.collectAsState()
     val locked by IslandBus.locked.collectAsState()
+    val keyguard by IslandBus.keyguard.collectAsState()
     // Будильник появляется в острове за 12 часов и уходит, когда прозвенел: просыпаемся ровно в эти два момента,
     // а не каждые полминуты. Пока телефон спит, ожидание стоит — поэтому со включением экрана пересчитываем
     val screenOn by IslandBus.screenOn.collectAsState()
@@ -257,7 +261,7 @@ fun IslandOverlay(
     }
     // Смахнутый входящий не показываем, пока звонит (сбрасывает служба, когда звонить перестали)
     val callHidden by IslandBus.callHidden.collectAsState()
-    val acts = buildList {
+    val allActs = buildList {
         // Входящий звонок важнее всего, как на iPhone
         if (call != null && call.incoming && !callHidden) add(Act.CallA(call))
         notice?.let { n ->
@@ -306,6 +310,14 @@ fun IslandOverlay(
         addAll(persistent)
     }
 
+    // Экран блокировки: «Только звонки» и «Сообщения и звонки» оставляют в острове лишь это
+    val acts = when {
+        !keyguard -> allActs
+        s.lockScreen == LockScreenMode.CALLS -> allActs.filter { it is Act.CallA }
+        s.lockScreen == LockScreenMode.MESSAGES -> allActs.filter { it is Act.CallA || it is Act.NoticeA && it.n.message != null }
+        else -> allActs
+    }
+
     // Пока двигают ползунок «Ширина с активностью», на острове пример: стрелка и метры
     val previewUntil by IslandBus.widthPreviewUntil.collectAsState()
     var previewNow by remember { mutableLongStateOf(0L) }
@@ -335,8 +347,13 @@ fun IslandOverlay(
     val lastSecondary = remember { arrayOfNulls<Act>(1) }
     if (secondary != null) lastSecondary[0] = secondary
     val bubbleVisible = secondary != null && !showExpanded
+    // Третья активность — вторым кружком с другой стороны; обе стороны одной ширины, остров остаётся над камерой
+    val third = if (s.thirdBubble) thirdActivity(acts, primary, secondary) else null
+    val lastThird = remember { arrayOfNulls<Act>(1) }
+    if (third != null) lastThird[0] = third
+    val thirdVisible = third != null && !showExpanded
     // Место под пузырь читается при измерении: кадр анимации не пересобирает остров
-    val slot = animateDpAsState(if (bubbleVisible) activeHeight(s) + 6.dp else 0.dp, islandSpec(s), label = "slot")
+    val slot = animateDpAsState(if (bubbleVisible || thirdVisible) activeHeight(s) + 6.dp else 0.dp, islandSpec(s), label = "slot")
 
     // Раскрытая активность пропала (музыку закрыли, таймер отменили) — сворачиваемся, а не показываем часы
     val focusGone = expanded && focus != null && focus != Act.Idle.id && acts.none { it.id == focus }
@@ -355,7 +372,6 @@ fun IslandOverlay(
         Controls.collapse()
     }
 
-    val keyguard by IslandBus.keyguard.collectAsState()
     val autoHideEligible = shouldTimeOutIdle(s, primary is Act.Idle && secondary == null, showExpanded, calibrating, screenOn, keyguard, shadeOpen)
     var idleTimedOut by remember { mutableStateOf(false) }
     var idleWakeRevision by remember { mutableLongStateOf(0L) }
@@ -382,6 +398,7 @@ fun IslandOverlay(
         SideEffect {
             onBodyBounds(if (timedHidden) wakeBounds.value else Rect.Zero)
             onBubbleBounds(Rect.Zero)
+            onThirdBounds(Rect.Zero)
         }
     }
     val hiddenNow = rememberUpdatedState(hidden)
@@ -396,6 +413,7 @@ fun IslandOverlay(
         }
     }
     val onBubble = remember(onBubbleBounds) { { r: Rect -> onBubbleBounds(if (hiddenNow.value) Rect.Zero else r) } }
+    val onThird = remember(onThirdBounds) { { r: Rect -> onThirdBounds(if (hiddenNow.value) Rect.Zero else r) } }
     val eggOn = egg && !calibrating
 
     // Остров меряется по своему размеру, а не по окну, и стоит сверху по центру окна
@@ -412,7 +430,8 @@ fun IslandOverlay(
             exit = if (s.reduceEffects) fadeOut() else scaleOut(islandSpec(s), targetScale = 0.3f, transformOrigin = top) + fadeOut(tween(160)),
         ) {
             CompositionLocalProvider(LocalActivities provides acts.filterNot { it.transient }) {
-                IslandRow(slot, s, primary, showExpanded, lyrics, battery, bubbleVisible, lastSecondary[0], calibrating, onBody, onBubble, onBackdropShape, onBackdropSampler)
+                IslandRow(slot, s, primary, showExpanded, lyrics, battery, bubbleVisible, lastSecondary[0], calibrating, onBody, onBubble, onBackdropShape, onBackdropSampler,
+                    thirdVisible, lastThird[0], onThird)
             }
         }
         if (timedHidden) CameraWakeTarget(s, onBounds = { r ->
@@ -429,6 +448,8 @@ fun IslandOverlay(
         }
         com.akira.island.face.FaceUnlockLayer(s, allowed = !calibrating && !shadeOpen &&
             !showExpanded && !eggOn)
+        if (s.privacyDots) PrivacyDots({ body.value }, show = !hidden && !showExpanded && !calibrating && primary !is Act.NoticeA &&
+            !(primary is Act.CallA && primary.c.incoming))
     }
 }
 
@@ -464,6 +485,9 @@ internal fun IslandRow(
     onBubbleBounds: (Rect) -> Unit,
     onBackdropShape: ((BackdropGeometry) -> Unit)? = null,
     onBackdropSampler: (((() -> Unit)?) -> Unit)? = null,
+    thirdVisible: Boolean = false,
+    thirdAct: Act? = null,
+    onThirdBounds: (Rect) -> Unit = {},
 ) {
     Row(
         Modifier
@@ -480,11 +504,14 @@ internal fun IslandRow(
             .padding(ISLAND_PAD_DP.dp),
         verticalAlignment = Alignment.Top,
     ) {
-        // Пустое место с другой стороны уравновешивает пузырь, чтобы остров стоял над камерой
+        // Вторая активность — со стороны [BubbleSide], третья — с другой. Обе стороны одной ширины, поэтому, даже
+        // когда с другой стороны пусто, остров стоит над камерой
         val left = s.bubbleSide == BubbleSide.LEFT
-        if (left) BubbleSlot(slot, bubbleVisible, bubbleAct, s, onBubbleBounds, left = true) else Spacer(Modifier.animatedWidth(slot))
+        if (left) BubbleSlot(slot, bubbleVisible, bubbleAct, s, onBubbleBounds, left = true)
+        else BubbleSlot(slot, thirdVisible, thirdAct, s, onThirdBounds, left = true)
         IslandBody(primary, showExpanded, s, lyrics, battery, calibrating, onBodyBounds, onBackdropShape, onBackdropSampler)
-        if (left) Spacer(Modifier.animatedWidth(slot)) else BubbleSlot(slot, bubbleVisible, bubbleAct, s, onBubbleBounds, left = false)
+        if (left) BubbleSlot(slot, thirdVisible, thirdAct, s, onThirdBounds, left = false)
+        else BubbleSlot(slot, bubbleVisible, bubbleAct, s, onBubbleBounds, left = false)
     }
 }
 
@@ -733,15 +760,29 @@ internal fun IslandBody(
                 val side = 56.dp.toPx()
                 var dx = 0f
                 var dy = 0f
+                var startedAt = 0L
                 detectDragGestures(
                     onDragStart = {
                         dx = 0f
                         dy = 0f
+                        startedAt = SystemClock.elapsedRealtime()
                     },
                     onDragEnd = {
                         scope.launch { pull.animateTo(0f, spring(dampingRatio = 0.45f)) }
                         val vertical = abs(dy) > abs(dx)
                         val act = current
+                        // «Чувствительность»: чем выше, тем короче свайп
+                        val k = 100f / settings.gestureSensitivity.coerceIn(50, 200)
+                        val threshold = threshold * k
+                        val side = side * k
+                        // The capsule sits at the screen's top edge, so a finger can't travel far upward from it:
+                        // a configured up-swipe needs less than the others
+                        val upThreshold = if (!isExpanded && settings.swipeUp != SwipeAction.DEFAULT && act !is Act.NoticeA) threshold * 0.6f else threshold
+                        val dir = swipeDirection(dx, dy, if (dy < 0) upThreshold else threshold, side)
+                        val held = SystemClock.elapsedRealtime() - startedAt >= 600
+                        if (dir != null && handleCustomSwipe(context, settings, dir, isExpanded, held, act, activities, haptic)) {
+                            return@detectDragGestures
+                        }
                         when {
                             !isExpanded && vertical && dy > threshold && settings.swipeExpand && !act.transient &&
                                 (act !is Act.Idle || settings.idleExpand) -> {

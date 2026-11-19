@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Dynamic Island</string>
+    <string name="a11y_label">Dynamic Island</string>
+    <string name="tile_label">灵动岛</string>
+    <string name="a11y_desc">在摄像头上方显示 Dynamic Island 风格的胶囊：音乐、计时器、下载、手电筒和系统事件。该服务会识别当前打开的应用，以便隐藏播放器并显示付款信息。它仅在导航、时钟和支付类应用打开期间读取其屏幕内容：导航中的下一个转弯距离、街道、到达时间和方向；时钟中的计时器和秒表；付款界面和金额，用于显示“请靠近读卡器”以及随后的“已支付”。读取的数据只保留在手机上。查找歌词时，会发送歌曲的标题、歌手、专辑和时长。如果开启天气，所选城市及其坐标会发送给 Open-Meteo，无需请求位置权限。对于可选的“回到顶部”手势，该服务会检查当前打开应用中的可滚动元素，但不会读取其文字。</string>
+</resources>

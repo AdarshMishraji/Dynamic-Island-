@@ -47,6 +47,14 @@ object ExtrasRepo {
             runCatching { json.decodeFromString<ExtraSettings>(raw) }.onSuccess { state.value = it }
         }
     }
+    fun exportJson(): String = json.encodeToString(ExtraSettings.serializer(), state.value)
+
+    fun importJson(raw: String, dryRun: Boolean = false): Boolean = runCatching {
+        val incoming = json.decodeFromString<ExtraSettings>(raw)
+        if (!dryRun) update { incoming }
+        true
+    }.getOrDefault(false)
+
     fun update(block: ExtraSettings.() -> ExtraSettings) {
         val next = state.value.block()
         prefs?.edit()?.putString("settings", json.encodeToString(ExtraSettings.serializer(), next))?.apply()

@@ -23,6 +23,7 @@ import androidx.palette.graphics.Palette
 import androidx.core.graphics.drawable.toBitmap
 import com.akira.island.core.AppMessage
 import com.akira.island.core.IslandBus
+import kotlinx.coroutines.launch
 import com.akira.island.core.MsgAction
 import com.akira.island.core.Notice
 import com.akira.island.core.NoticeStyle
@@ -54,6 +55,8 @@ object Messages {
         "stopwatch",
         "location_sharing",
     )
+
+    private val cooldown = NotificationCooldown()
 
     fun maybeShow(service: NotificationListenerService, sbn: StatusBarNotification, appName: String) {
         val s = SettingsRepo.current
@@ -127,6 +130,10 @@ object Messages {
         if (!deduplicator.shouldShow(sbn.key, pkg, identity, s.msgDedupe, SystemClock.elapsedRealtime())) {
             return NotifDebug.add(pkg, tr("Повтор", "Repeat"))
         }
+        // A burst from one app: only the first banner per cooldown (stores, file managers and cloud apps are never held back)
+        if (!TransferClassifier.isTransferApp(pkg) && !cooldown.allows(pkg, SystemClock.elapsedRealtime(), s.msgCooldownSec * 1000L)) {
+            return NotifDebug.add(pkg, tr("Пауза между уведомлениями", "Notification cooldown"))
+        }
 
         val avatar = runCatching {
             n.getLargeIcon()?.loadDrawable(service)?.toBitmap(128, 128)?.asImageBitmap()
@@ -145,6 +152,7 @@ object Messages {
             accent = if (s.accentMode == AccentMode.ADAPTIVE) accentOf(avatar ?: NotificationParser.icon(service, sbn.packageName)) else null,
             history = history(ex),
             sensitive = sensitive,
+            picture = if (sensitive) null else picture(service, ex),
         )
         IslandBus.post(
             Notice(
@@ -158,6 +166,12 @@ object Messages {
             ),
         )
         NotifDebug.add(pkg, tr("Показано", "Shown"))
+        // «Сохранённая история»: только на этом телефоне, и не то, что скрыто на экране блокировки
+        if (s.keepHistory && !sensitive) {
+            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                com.akira.island.data.NotificationHistory.add(service, pkg, appName, title.ifEmpty { appName }, text)
+            }
+        }
         // «История уведомлений»: после плашки сообщение ждёт в острове
         if (s.historyMinutes != 0) Inbox.add(message, title.ifEmpty { appName })
         // Для «Системных плашек»: какой мессенджер и всплывает ли у него ещё своя плашка поверх острова
@@ -183,6 +197,18 @@ object Messages {
         val other = all.firstOrNull { !it.isReply }
         return listOfNotNull(reply, read ?: other)
     }
+
+    /** The picture of a BigPictureStyle notification, scaled down: it is only ever shown a few hundred dp wide. */
+    @Suppress("DEPRECATION")
+    private fun picture(context: Context, ex: Bundle): ImageBitmap? = runCatching {
+        val bitmap = ex.getParcelable<android.graphics.Bitmap>(Notification.EXTRA_PICTURE)
+            ?: (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) ex.getParcelable<android.graphics.drawable.Icon>(Notification.EXTRA_PICTURE_ICON)
+                ?.loadDrawable(context)?.toBitmap() else null)
+            ?: return@runCatching null
+        val width = 720
+        val scaled = if (bitmap.width > width) android.graphics.Bitmap.createScaledBitmap(bitmap, width, bitmap.height * width / bitmap.width, true) else bitmap
+        scaled.asImageBitmap()
+    }.getOrNull()
 
     /** Все сообщения переписки для списка под карточкой: у групп с именем отправителя. */
     private fun history(ex: Bundle): List<String> {

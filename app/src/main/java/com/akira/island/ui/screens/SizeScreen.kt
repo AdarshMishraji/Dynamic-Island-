@@ -1,5 +1,6 @@
 package com.akira.island.ui.screens
 
+import com.akira.island.ui.SectionHeader
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -108,6 +109,11 @@ fun SizeScreen(onBack: () -> Unit) {
                 ) { v -> set { copy(notch = v) } }
             }
             Spacer(Modifier.height(16.dp))
+            SectionHeader(tr("Готовые размеры", "Presets"))
+            ChoiceStrip(listOf(92 to 27, 104 to 31, 126 to 37), s.width to s.height,
+                { when (it.first) { 92 -> tr("Компактный", "Compact"); 104 -> tr("Обычный", "Default"); else -> tr("Широкий", "Wide") } },
+                { (w, h) -> set { copy(width = w, height = h) } })
+            Spacer(Modifier.height(12.dp))
             Group {
                 GroupStepSlider(Pos.First, Icons.Rounded.Straighten, tr("Ширина", "Width"), s.width, 50..400, color = Tile.Purple) { v ->
                     set { copy(width = v) }

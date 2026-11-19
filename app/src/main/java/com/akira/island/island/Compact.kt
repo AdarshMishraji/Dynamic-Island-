@@ -702,12 +702,22 @@ internal fun MessageCard(n: Notice, m: AppMessage, s: IslandSettings, @Suppress(
                         NotifIcon(iconMessage, n, iconSize, Color(s.color))
                     }
                 }
+                // Картинка из уведомления: сначала небольшой предпросмотр, по нажатию на карточку — крупнее
+                if (!hidden && m.picture != null) {
+                    Image(
+                        m.picture, null,
+                        Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp).fillMaxWidth()
+                            .heightIn(max = if (detail) 360.dp else 140.dp).clip(RoundedCornerShape(14.dp)),
+                        contentScale = if (detail) ContentScale.Fit else ContentScale.Crop,
+                    )
+                }
                 if (replyAction != null) {
                     // Строка ответа стоит под текстом, как кнопки, — на одной линии с ним
                     Box(Modifier.padding(start = 16.dp + (if (showIcon && iconPosition == MessageIconPosition.LEFT) iconSize + 12.dp else 0.dp), end = 16.dp)) {
-                        ReplyField(replyAction, accent) { text ->
+                        ReplyField(replyAction, accent, draftKey = m.key) { text ->
                             if (text.isBlank()) return@ReplyField
                             if (Controls.sendReply(context, replyAction, text)) {
+                                com.akira.island.core.ReplyDrafts.clear(m.key)
                                 IslandBus.reply.value = null
                                 IslandBus.notice.value = null
                                 // Как в ролике: на миг «Отправлено» с галочкой и кому
@@ -931,8 +941,8 @@ private fun TextAction(title: String, accent: Color, modifier: Modifier = Modifi
  * поэтому клавиатура покажется.
  */
 @Composable
-private fun ReplyField(action: MsgAction, accent: Color, onSend: (String) -> Unit) {
-    var text by remember { mutableStateOf("") }
+private fun ReplyField(action: MsgAction, accent: Color, draftKey: String, onSend: (String) -> Unit) {
+    var text by remember(draftKey) { mutableStateOf(com.akira.island.core.ReplyDrafts.get(draftKey)) }
     val focus = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
     LaunchedEffect(Unit) {
@@ -956,7 +966,7 @@ private fun ReplyField(action: MsgAction, accent: Color, onSend: (String) -> Uni
         ) {
             BasicTextField(
                 value = text,
-                onValueChange = { text = it },
+                onValueChange = { text = it; com.akira.island.core.ReplyDrafts.set(draftKey, it) },
                 singleLine = true,
                 textStyle = TextStyle(color = Color.White, fontSize = 15.sp, fontFamily = IslandType.family),
                 cursorBrush = SolidColor(accent),

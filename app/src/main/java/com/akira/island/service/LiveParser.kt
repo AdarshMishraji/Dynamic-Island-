@@ -145,7 +145,7 @@ object LiveParser {
         if (c == "ru" || c == "kk") return s
         return ruUnit.replace(s) { m ->
             val (whole, frac, unit) = m.destructured
-            val n = if (frac.isEmpty()) whole else if (c == "en") "$whole.$frac" else "$whole,$frac"
+            val n = if (frac.isEmpty()) whole else if (c == "en" || c == "ja" || c == "zh") "$whole.$frac" else "$whole,$frac"
             val u = when (unit) {
                 "км" -> "km"
                 "мин" -> if (c == "id") "mnt" else "min"

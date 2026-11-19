@@ -60,6 +60,27 @@ enum class TapAction(private val ru: String, private val en: String) {
     val title: String get() = tr(ru, en)
 }
 
+/** What a swipe does. [DEFAULT] keeps the island's built-in behaviour for that direction. */
+@Serializable
+enum class SwipeAction(private val ru: String, private val en: String) {
+    DEFAULT("Как обычно", "Default"),
+    NOTHING("Ничего", "Nothing"),
+    EXPAND("Раскрыть", "Expand"),
+    NEXT_CARD("Следующая карточка", "Next card"),
+    PREV_CARD("Предыдущая карточка", "Previous card"),
+    NEXT_TRACK("Следующий трек", "Next track"),
+    PREV_TRACK("Предыдущий трек", "Previous track"),
+    PLAY_PAUSE("Пауза / воспроизведение", "Play / pause"),
+    DISMISS("Убрать уведомление", "Dismiss notification"),
+    CLEAR_ALL("Очистить все уведомления", "Clear all notifications"),
+    QUICK_LAUNCH("Быстрый запуск", "Quick launch"),
+    SHADE("Шторка уведомлений", "Notification shade"),
+    SCREENSHOT("Скриншот без острова", "Screenshot without the island"),
+    ;
+
+    val title: String get() = tr(ru, en)
+}
+
 /** Кнопки раскрытого пустого острова. Подпись на кнопке короче, чем в настройках */
 @Serializable
 enum class QuickAction(private val ru: String, private val en: String, private val shortRu: String, private val shortEn: String) {
@@ -139,6 +160,8 @@ enum class IslandFont(private val ru: String, private val en: String) {
 enum class LockScreenMode(private val ru: String, private val en: String) {
     SHOW("Показывать", "Show"),
     HIDE("Скрывать до разблокировки", "Hide until unlocked"),
+    CALLS("Только звонки", "Calls only"),
+    MESSAGES("Сообщения и звонки", "Messages and calls only"),
     ;
 
     val title: String get() = tr(ru, en)
@@ -184,7 +207,7 @@ enum class MessageIconPosition(private val ru: String, private val en: String) {
  */
 @Serializable
 enum class AppLanguage(val code: String) {
-    SYSTEM(""), RU("ru"), EN("en"), ID("id"), PT("pt"), KK("kk"), FR("fr"), ES("es");
+    SYSTEM(""), RU("ru"), EN("en"), ID("id"), PT("pt"), KK("kk"), FR("fr"), ES("es"), JA("ja"), ZH("zh");
 
     val title: String
         get() = when (this) {
@@ -196,6 +219,8 @@ enum class AppLanguage(val code: String) {
             KK -> "Қазақ тілі"
             FR -> "Français"
             ES -> "Español"
+            JA -> "日本語"
+            ZH -> "简体中文"
         }
 }
 
@@ -366,6 +391,8 @@ data class IslandSettings(
     val autoCollapseSec: Int = 0,
     /** Вторая активность — кружком рядом с капсулой, как на iPhone */
     val bubble: Boolean = true,
+    /** A third activity goes into a pill on the other side of the capsule (needs the bubble). */
+    val thirdBubble: Boolean = true,
     /** Нажатие на пустой остров раскрывает его: часы, заряд и [quickActions] */
     val idleExpand: Boolean = true,
     /** Кнопки раскрытого пустого острова; пусто — только часы и заряд */
@@ -445,6 +472,33 @@ data class IslandSettings(
     val transferCopy: Boolean = true,
     val transferDelete: Boolean = true,
     val transferInstall: Boolean = true,
+    /** Swipes on the collapsed island; [SwipeAction.DEFAULT] is what it did before these were configurable. */
+    val swipeUp: SwipeAction = SwipeAction.DEFAULT,
+    val swipeDown: SwipeAction = SwipeAction.DEFAULT,
+    val swipeLeft: SwipeAction = SwipeAction.DEFAULT,
+    val swipeRight: SwipeAction = SwipeAction.DEFAULT,
+    /** Swiping down on an expanded card. */
+    val expandedSwipeDown: SwipeAction = SwipeAction.DEFAULT,
+    /** Holding, then swiping up on a notification or an expanded card clears every notification. */
+    val holdSwipeClears: Boolean = false,
+    /** Percent: higher means a shorter swipe is enough. */
+    val gestureSensitivity: Int = 100,
+    /** Percent of a normal tap; 100 uses the system's own feedback. */
+    val hapticStrength: Int = 100,
+    /** A short banner on every full hour. Off by default: it appears even when nothing else is going on. */
+    /** A dot beside the capsule while the camera (green) or microphone (orange) is in use. */
+    val privacyDots: Boolean = false,
+    /** Apps in front of which the island switches itself off (games, video). */
+    val exemptApps: Set<String> = emptySet(),
+    /** Seconds before the same app's next notification banner may show; 0 is off. */
+    val msgCooldownSec: Int = 0,
+    /** Keep a searchable list of shown notifications on this phone only. */
+    val keepHistory: Boolean = false,
+    /** Shows the developer entries in About (log export). Switched on by tapping the version seven times. */
+    val devMode: Boolean = false,
+    val hourTick: Boolean = false,
+    /** A banner with its own glyph at sunrise (6:00), afternoon (12:00), sunset (17:30) and midnight (23:00). */
+    val dayMoments: Boolean = false,
     val evFullCharge: Boolean = true,
     val evPowerSave: Boolean = true,
     val evWiredHeadset: Boolean = true,
@@ -598,6 +652,25 @@ object SettingsRepo {
     }
 
     fun reset() = update { IslandSettings() }
+
+    fun exportJson(): String = json.encodeToString(_state.value)
+
+    /**
+     * Applies settings from a backup. Things that belong to this phone stay: the update bookkeeping, the list of
+     * messengers seen, and a custom font file (it lives in this app's private folder, so it can't travel).
+     */
+    fun importJson(raw: String, dryRun: Boolean = false): Boolean = runCatching {
+        val incoming = json.decodeFromString<IslandSettings>(raw)
+        if (!dryRun) update {
+            incoming.copy(
+                skippedVersion = skippedVersion, lastSeenVersion = lastSeenVersion, lastUpdateCheck = lastUpdateCheck,
+                islandVersion = islandVersion, msgChannels = msgChannels,
+                islandFont = if (incoming.islandFont == IslandFont.CUSTOM && customFontFile.isEmpty()) IslandFont.INTER else incoming.islandFont,
+                customFontName = customFontName, customFontFile = customFontFile,
+            )
+        }
+        true
+    }.getOrDefault(false)
 
     fun resetAnimations() = update {
         val d = IslandSettings()

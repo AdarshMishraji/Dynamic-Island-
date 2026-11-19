@@ -40,6 +40,9 @@ internal object TransferClassifier {
         "com.nextcloud.client", "com.owncloud.android", "mega.privacy.android.app", "com.box.android", "com.pcloud.pcloud",
         "com.amazon.clouddrive.photos", "com.samsung.android.scloud", "me.proton.android.drive", "com.syncthing.android")
 
+    /** Download managers' neighbours: their "finished" notices must not wait behind a cooldown. */
+    fun isTransferApp(pkg: String): Boolean = pkg.lowercase(Locale.ROOT).let { it in stores || it in fileManagers || it in clouds }
+
     private fun List<String>.hit(text: String) = any { it in text }
 
     fun kind(pkg: String, text: String): TransferKind {

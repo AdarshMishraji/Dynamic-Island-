@@ -5,6 +5,12 @@ import com.akira.island.island.PreviewScene
 
 import androidx.compose.foundation.background
 import androidx.compose.material.icons.rounded.BatteryFull
+import androidx.compose.material.icons.rounded.PrivacyTip
+import androidx.compose.material.icons.rounded.SaveAlt
+import androidx.compose.material.icons.rounded.UploadFile
+import androidx.compose.material.icons.rounded.HourglassTop
+import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.SportsEsports
 import androidx.compose.material.icons.rounded.Wifi
 import androidx.compose.material.icons.rounded.SignalCellularAlt
 import androidx.compose.material.icons.rounded.Bluetooth
@@ -100,6 +106,28 @@ import com.akira.island.data.QuickAction
  */
 @Composable
 fun FeaturesScreen(open: (Screen) -> Unit) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val backup = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        if (uri != null) {
+            val saved = runCatching {
+                context.contentResolver.openOutputStream(uri)?.use { it.write(com.akira.island.data.SettingsBackup.export().toByteArray()) } != null
+            }.getOrDefault(false)
+            android.widget.Toast.makeText(context, if (saved) tr("Настройки сохранены", "Settings saved") else tr("Не удалось сохранить файл", "Couldn't save the file"),
+                android.widget.Toast.LENGTH_SHORT).show()
+        }
+    }
+    val restore = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            val ok = runCatching {
+                context.contentResolver.openInputStream(uri)?.use { com.akira.island.data.SettingsBackup.readLimited(it) }
+                    ?.let { com.akira.island.data.SettingsBackup.import(it) } == true
+            }.getOrDefault(false)
+            android.widget.Toast.makeText(context, if (ok) tr("Настройки восстановлены", "Settings restored")
+                else tr("Это не файл настроек Dynamic Island", "That isn't a Dynamic Island settings file"), android.widget.Toast.LENGTH_LONG).show()
+        }
+    }
     val s by SettingsRepo.state.collectAsState()
     var confirmReset by remember { mutableStateOf(false) }
     var languageDialog by remember { mutableStateOf(false) }
@@ -141,6 +169,12 @@ fun FeaturesScreen(open: (Screen) -> Unit) {
             // Значок глобуса и «Language» рядом — язык найдётся, даже если сейчас он непонятен
             GroupItem(Pos.First, Icons.Rounded.Language, languageTitle(), s.language.title,
                 color = Tile.Blue, onClick = { languageDialog = true }) { Arrow() }
+            GroupItem(Pos.Middle, Icons.Rounded.SaveAlt, tr("Сохранить настройки в файл", "Save settings to a file"),
+                tr("Чтобы перенести на другой телефон или вернуться после сброса", "To move to another phone or come back to after a reset"),
+                onClick = { backup.launch("dynamic-island-settings.json") }, color = Tile.Green)
+            GroupItem(Pos.Middle, Icons.Rounded.UploadFile, tr("Восстановить настройки из файла", "Restore settings from a file"),
+                tr("Заменяет нынешние настройки", "Replaces the current settings"),
+                onClick = { restore.launch(arrayOf("application/json", "text/plain", "application/octet-stream")) }, color = Tile.Orange)
             GroupItem(Pos.Last, Icons.Rounded.Restore, tr("Сбросить все настройки", "Reset all settings"),
                 tr("Вернуть всё как было после установки", "Back to how it was after installing"),
                 onClick = { confirmReset = true }, color = Tile.Gray)
@@ -179,6 +213,7 @@ fun BehaviorScreen(onBack: () -> Unit) {
     var collapseDialog by remember { mutableStateOf(false) }
     var landscapeDialog by remember { mutableStateOf(false) }
     var lockDialog by remember { mutableStateOf(false) }
+    var exemptDialog by remember { mutableStateOf(false) }
     var emptyDialog by remember { mutableStateOf(false) }
     var idleHideDialog by remember { mutableStateOf(false) }
     var sourceDialog by remember { mutableStateOf(false) }
@@ -204,8 +239,12 @@ fun BehaviorScreen(onBack: () -> Unit) {
                 "${s.landscape.title} — ${s.landscape.hint}", color = Tile.Gray, onClick = { landscapeDialog = true })
             GroupItem(Pos.Middle, Icons.Rounded.ScreenLockPortrait, tr("На экране блокировки", "On the lock screen"),
                 s.lockScreen.title, color = Tile.Indigo, onClick = { lockDialog = true })
-            GroupItem(Pos.Last, Icons.Rounded.Apps, tr("Когда открыто приложение", "When its app is open"),
+            GroupItem(Pos.Middle, Icons.Rounded.Apps, tr("Когда открыто приложение", "When its app is open"),
                 sourceLabel(s.sourceVisibility), color = Tile.Blue, onClick = { sourceDialog = true })
+            GroupItem(Pos.Last, Icons.Rounded.SportsEsports, tr("Приложения без острова", "Apps without the island"),
+                if (s.exemptApps.isEmpty()) tr("Остров виден везде", "The island shows everywhere")
+                else trf("Остров выключается в: {0}", "The island switches off in: {0}", s.exemptApps.size),
+                color = Tile.Orange, onClick = { exemptDialog = true })
         }
 
         SectionHeader(tr("Дополнительные возможности", "Additional features"))
@@ -239,9 +278,13 @@ fun BehaviorScreen(onBack: () -> Unit) {
             GroupToggle(Pos.Middle, Icons.Rounded.NotificationsOff, tr("Сворачивать под шторкой", "Collapse under the notification shade"),
                 tr("Оставлять пустую капсулу при открытой шторке уведомлений или быстрых настройках", "Keep the capsule empty while the notification shade or quick settings are open"),
                 s.collapseOnShade, color = Tile.Indigo) { v -> SettingsRepo.update { copy(collapseOnShade = v) } }
-            GroupToggle(Pos.Last, Icons.Rounded.VideocamOff, tr("Скрывать при записи экрана", "Hide while recording the screen"),
+            GroupToggle(Pos.Middle, Icons.Rounded.VideocamOff, tr("Скрывать при записи экрана", "Hide while recording the screen"),
                 tr("Скрывать остров целиком, пока Android сообщает об активной записи", "Hide the entire island while Android reports an active screen recording"),
                 s.hideWhileRecording, color = Tile.Red) { value -> SettingsRepo.update { copy(hideWhileRecording = value) } }
+            GroupToggle(Pos.Last, Icons.Rounded.PrivacyTip, tr("Точки приватности", "Privacy dots"),
+                tr("Зелёная точка рядом с капсулой — камера используется, оранжевая — микрофон. Какое приложение, Android обычным приложениям не сообщает",
+                    "A green dot beside the capsule while the camera is in use, orange for the microphone. Android doesn't tell ordinary apps which app is using them"),
+                s.privacyDots, color = Tile.Green) { value -> SettingsRepo.update { copy(privacyDots = value) } }
 
         }
 
@@ -274,8 +317,12 @@ fun BehaviorScreen(onBack: () -> Unit) {
                 SettingsRepo.update { copy(bubble = v) }
             }
             if (s.bubble) {
-                GroupItem(Pos.Last, if (s.bubbleSide == BubbleSide.LEFT) Icons.Rounded.AlignHorizontalLeft else Icons.Rounded.AlignHorizontalRight,
+                GroupItem(Pos.Middle, if (s.bubbleSide == BubbleSide.LEFT) Icons.Rounded.AlignHorizontalLeft else Icons.Rounded.AlignHorizontalRight,
                     tr("Сторона кружка", "Circle side"), s.bubbleSide.title, color = Tile.Purple, onClick = { previewScene = PreviewScene.MUSIC; sideDialog = true })
+                GroupToggle(Pos.Last, Icons.Rounded.Dashboard, tr("Третья активность", "Third activity"),
+                    tr("Когда активностей три, третья — вторым кружком с другой стороны капсулы",
+                        "With three activities, the third one is a second circle on the other side of the capsule"),
+                    s.thirdBubble, color = Tile.Purple) { v -> SettingsRepo.update { copy(thirdBubble = v) } }
             }
         }
 
@@ -321,6 +368,8 @@ fun BehaviorScreen(onBack: () -> Unit) {
         ChoiceDialog(tr("В альбомной ориентации", "In landscape"), LandscapeMode.entries, s.landscape, { "${it.title} — ${it.hint}" },
             { v -> SettingsRepo.update { copy(landscape = v) } }) { landscapeDialog = false }
     }
+    if (exemptDialog) AppChecklistDialog(tr("Приложения без острова", "Apps without the island"), s.exemptApps,
+        { v -> SettingsRepo.update { copy(exemptApps = v) } }) { exemptDialog = false }
     if (lockDialog) {
         ChoiceDialog(tr("На экране блокировки", "On the lock screen"), LockScreenMode.entries, s.lockScreen, { it.title },
             { v -> SettingsRepo.update { copy(lockScreen = v) } }) { lockDialog = false }
@@ -341,6 +390,8 @@ private fun languageTitle(): String = when (Lang.code) {
     "id" -> "Bahasa · Language"
     "pt" -> "Idioma · Language"
     "kk" -> "Тіл · Language"
+    "ja" -> "言語 · Language"
+    "zh" -> "语言 · Language"
     else -> "Language"
 }
 
@@ -364,6 +415,7 @@ fun NotificationsScreen(onBack: () -> Unit, open: (Screen) -> Unit) {
     var styleDialog by remember { mutableStateOf(false) }
     var timeDialog by remember { mutableStateOf(false) }
     var historyDialog by remember { mutableStateOf(false) }
+    var cooldownDialog by remember { mutableStateOf(false) }
     var iconDialog by remember { mutableStateOf(false) }
     var iconPositionDialog by remember { mutableStateOf(false) }
 
@@ -397,10 +449,17 @@ fun NotificationsScreen(onBack: () -> Unit, open: (Screen) -> Unit) {
                 messageTimeLabel(s.messageSeconds), color = Tile.Orange, onClick = { timeDialog = true })
             GroupItem(Pos.Middle, Icons.Rounded.History, tr("История уведомлений", "Notification history"),
                 historyLabel(s.historyMinutes), color = Tile.Indigo, onClick = { historyDialog = true })
-            GroupToggle(Pos.Last, Icons.Rounded.Repeat, tr("Убирать повторы", "Skip repeats"),
+            GroupToggle(Pos.Middle, Icons.Rounded.Repeat, tr("Убирать повторы", "Skip repeats"),
                 tr("То же сообщение ещё раз — от второго аккаунта, пересланное, из двух приложений — не показывается",
                     "The same message again — from a second account, forwarded, or from two apps — isn't shown"),
                 s.msgDedupe, color = Tile.Teal) { v -> SettingsRepo.update { copy(msgDedupe = v) } }
+            GroupItem(Pos.Middle, Icons.Rounded.HourglassTop, tr("Пауза между уведомлениями", "Cooldown between alerts"),
+                if (s.msgCooldownSec == 0) tr("Выключено", "Off")
+                else trf("Одно уведомление приложения раз в {0} с", "One banner per app every {0} s", s.msgCooldownSec),
+                color = Tile.Orange, onClick = { cooldownDialog = true })
+            GroupItem(Pos.Last, Icons.Rounded.Search, tr("Сохранённая история", "Saved history"),
+                if (s.keepHistory) tr("Включена — с поиском, только на этом телефоне", "On — searchable, on this phone only")
+                else tr("Выключена", "Off"), color = Tile.Indigo, onClick = { open(Screen.HISTORY) })
         }
 
         SectionHeader(tr("Значок уведомления", "Notification icon"))
@@ -454,6 +513,9 @@ fun NotificationsScreen(onBack: () -> Unit, open: (Screen) -> Unit) {
         ChoiceDialog(tr("Сколько показывать", "How long to show"), listOf(0, 5, 8, 10, 15, 30, -1), s.messageSeconds, ::messageTimeLabel,
             { v -> SettingsRepo.update { copy(messageSeconds = v) } }) { timeDialog = false }
     }
+    if (cooldownDialog) ChoiceDialog(tr("Пауза между уведомлениями", "Cooldown between alerts"), listOf(0, 5, 15, 30, 60), s.msgCooldownSec,
+        { if (it == 0) tr("Выключено", "Off") else trf("{0} с", "{0} s", it) },
+        { v -> SettingsRepo.update { copy(msgCooldownSec = v) } }) { cooldownDialog = false }
     if (historyDialog) {
         ChoiceDialog(tr("История уведомлений", "Notification history"), listOf(0, 5, 15, 60, -1), s.historyMinutes, ::historyLabel,
             { v -> SettingsRepo.update { copy(historyMinutes = v) } }) { historyDialog = false }

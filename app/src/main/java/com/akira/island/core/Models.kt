@@ -209,7 +209,8 @@ data class TimerState(
     val paused: Boolean get() = pausedLeft != null && !ringing
 }
 
-data class StopwatchState(val startedAt: Long?, val accumulated: Long) {
+/** [laps] are the total elapsed time at each press of Lap, oldest first. */
+data class StopwatchState(val startedAt: Long?, val accumulated: Long, val laps: List<Long> = emptyList()) {
     fun elapsed(now: Long): Long = accumulated + (startedAt?.let { now - it } ?: 0)
     val running: Boolean get() = startedAt != null
 }
@@ -291,6 +292,8 @@ data class AppMessage(
     val history: List<String> = emptyList(),
     /** На заблокированном экране вместо имени и текста — только название приложения, как в шторке */
     val sensitive: Boolean = false,
+    /** Большая картинка из уведомления (BigPictureStyle) */
+    val picture: ImageBitmap? = null,
 )
 
 /** Уведомление в «Истории уведомлений»: ждёт в острове, пока его не прочитают, не очистят или не выйдет время. */

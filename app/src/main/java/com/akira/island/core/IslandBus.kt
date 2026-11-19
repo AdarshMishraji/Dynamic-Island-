@@ -157,4 +157,4 @@ object IslandBus {
 }
 
 /** Команды службе: скриншот без острова, блокировка, выключение и прокрутка по явному жесту. */
-enum class ServiceCommand { SCREENSHOT, LOCK, TURN_OFF, SCROLL_TOP, QUICK_SETTINGS }
+enum class ServiceCommand { SCREENSHOT, LOCK, TURN_OFF, SCROLL_TOP, QUICK_SETTINGS, SHADE }

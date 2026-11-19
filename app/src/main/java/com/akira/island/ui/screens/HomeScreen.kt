@@ -41,6 +41,7 @@ import androidx.compose.material.icons.rounded.NotificationsOff
 import androidx.compose.material.icons.rounded.PowerSettingsNew
 import androidx.compose.material.icons.rounded.Science
 import androidx.compose.material.icons.rounded.Downloading
+import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material.icons.rounded.SystemUpdate
 import androidx.compose.material.icons.rounded.VerifiedUser
 import androidx.compose.material3.Icon
@@ -444,6 +445,11 @@ private fun demos(context: Context): List<Demo> = listOf(
         tr("Загрузка, отправка, копия, удаление, установка — по одному за нажатие",
             "Download, upload, backup, copy, delete, install — one per tap"), Tile.Blue) {
         Controls.showTestProgress(context)
+    },
+    Demo(Icons.Rounded.Schedule, tr("Время", "Time"),
+        tr("Час и время суток: рассвет, день, закат, полночь — по одному за нажатие",
+            "The hour and the times of day: sunrise, afternoon, sunset, midnight — one per tap"), Tile.Blue) {
+        com.akira.island.service.HourTick.demo(context)
     },
     Demo(Icons.Rounded.SystemUpdate, tr("Обновление", "Update"),
         tr("Карточка новой версии: загрузка и «Обновлено»", "The new version card: download, then Updated"), Tile.Pink) {

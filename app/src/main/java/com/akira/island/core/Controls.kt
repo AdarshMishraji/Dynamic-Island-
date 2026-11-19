@@ -103,7 +103,13 @@ object Controls {
         val w = IslandBus.stopwatch.value ?: return
         val now = SystemClock.elapsedRealtime()
         IslandBus.stopwatch.value =
-            if (w.running) StopwatchState(null, w.elapsed(now)) else StopwatchState(now, w.accumulated)
+            if (w.running) StopwatchState(null, w.elapsed(now), w.laps) else StopwatchState(now, w.accumulated, w.laps)
+    }
+
+    /** Marks a lap; only a running stopwatch has laps. */
+    fun lapStopwatch() {
+        val w = IslandBus.stopwatch.value?.takeIf { it.running } ?: return
+        IslandBus.stopwatch.value = w.copy(laps = (w.laps + w.elapsed(SystemClock.elapsedRealtime())).takeLast(50))
     }
 
     fun stopStopwatch() {
@@ -293,6 +299,18 @@ object Controls {
             return
         }
         runCatching { Settings.System.putInt(context.contentResolver, Settings.System.ACCELEROMETER_ROTATION, if (rotationOn(context)) 0 else 1) }
+    }
+
+    fun openShade() {
+        IslandBus.commands.tryEmit(ServiceCommand.SHADE)
+        collapse()
+    }
+
+    /** Dismisses every notification Android lets us dismiss, and empties the island's own list. */
+    fun clearAllNotifications() {
+        com.akira.island.service.NotifListener.dismissEverything()
+        IslandBus.notice.value = null
+        collapse()
     }
 
     fun openQuickSettings() {

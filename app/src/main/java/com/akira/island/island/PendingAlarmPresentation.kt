@@ -6,3 +6,7 @@ internal fun primaryWithPendingAlarm(acts: List<Act>, expanded: Boolean, focus: 
 
 internal fun secondaryWithPendingAlarm(acts: List<Act>, primary: Act): Act? =
     acts.firstOrNull { !it.transient && it.id != primary.id }
+
+/** The next activity after the main one and the bubble: a third pill, on the bubble's opposite side. */
+internal fun thirdActivity(acts: List<Act>, primary: Act, secondary: Act?): Act? =
+    if (secondary == null) null else acts.firstOrNull { !it.transient && it.id != primary.id && it.id != secondary.id }

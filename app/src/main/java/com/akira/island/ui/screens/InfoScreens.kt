@@ -1,5 +1,9 @@
 package com.akira.island.ui.screens
 
+import androidx.compose.material.icons.rounded.BugReport
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.foundation.clickable
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
@@ -191,6 +195,12 @@ fun AppInfoScreen(open: (Screen) -> Unit) {
     val scope = rememberCoroutineScope()
     val version = remember { UpdateChecker.currentVersion(context) }
     var notes by remember { mutableStateOf(false) }
+    val exportLog = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.CreateDocument("text/plain")) { uri ->
+        if (uri != null) scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            runCatching { context.contentResolver.openOutputStream(uri)?.use { it.write(com.akira.island.service.DevLog.dump().toByteArray()) } }
+        }
+    }
 
     Page(tr("О приложении", "About")) {
         AppHeader(version, update)
@@ -228,6 +238,18 @@ fun AppInfoScreen(open: (Screen) -> Unit) {
             AppDetailsItem(Pos.Last)
         }
 
+        if (s.devMode) {
+            SectionHeader(tr("Для разработчиков", "Developer"))
+            Group {
+                GroupItem(Pos.First, Icons.Rounded.BugReport, tr("Сохранить журнал", "Export the log"),
+                    tr("Последние строки журнала острова в файл — для отчёта об ошибке. Могут быть названия приложений",
+                        "The island's recent log lines in a file, for a bug report. May include app names"),
+                    onClick = { exportLog.launch("dynamic-island-log.txt") }, color = Tile.Gray)
+                GroupItem(Pos.Last, Icons.Rounded.Close, tr("Выключить режим разработчика", "Turn off developer mode"), null,
+                    onClick = { SettingsRepo.update { copy(devMode = false) } }, color = Tile.Gray)
+            }
+        }
+
         SectionHeader(tr("Значок приложения", "App icon"))
         GroupItem(Pos.Single, Icons.Rounded.Apps, tr("Значок на рабочем столе", "Launcher icon"),
             tr("Скрыть только после проверки входа через плитку", "Hide only after testing access through the tile"),
@@ -262,7 +284,17 @@ private fun AppHeader(version: String, update: UpdateState) {
         }
         Spacer(Modifier.height(14.dp))
         Text(tr("Динамический остров", "Dynamic Island"), color = Ui.Text, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-        Text(trf("Версия {0}", "Version {0}", version), color = Ui.Sub, fontSize = 15.sp, modifier = Modifier.padding(top = 2.dp))
+        // Seven taps on the version switch on the developer entries
+        var taps by remember { mutableIntStateOf(0) }
+        val context = LocalContext.current
+        Text(trf("Версия {0}", "Version {0}", version), color = Ui.Sub, fontSize = 15.sp,
+            modifier = Modifier.padding(top = 2.dp).clickable {
+                if (++taps >= 7) {
+                    taps = 0
+                    SettingsRepo.update { copy(devMode = true) }
+                    android.widget.Toast.makeText(context, tr("Режим разработчика включён", "Developer mode is on"), android.widget.Toast.LENGTH_SHORT).show()
+                }
+            })
         val (label, color) = when (update) {
             UpdateState.UpToDate -> tr("Последняя версия", "Up to date") to Tints.Green
             is UpdateState.Available -> trf("Доступна версия {0}", "Version {0} is available", update.release.version) to Ui.Primary
